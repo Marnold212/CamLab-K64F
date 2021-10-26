@@ -30,6 +30,7 @@ __pycache__/
 *.la
 *.a
 *.lib
+!mbed-os.lib
 
 # Executables
 *.exe
