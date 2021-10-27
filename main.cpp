@@ -11,10 +11,14 @@ void pit_init();
 void PIT_IRQHandler(void);
 
 // Application buffer to receive the data
-char buf[MAXIMUM_BUFFER_SIZE] = "0 Hello World\r\n";
+char buf[MAXIMUM_BUFFER_SIZE] = "                  \r\n";
 uint32_t num = 32;
 
+volatile bool val = 0;
+volatile bool *ptrval = &val;
+
 int main(){
+    static DigitalOut led(LED1);
     // Set desired properties (9600-8-N-1).
     serial_port.set_baud(9600);
     serial_port.set_format(
@@ -28,12 +32,25 @@ int main(){
 	// SIM->SCGC5 |= SIM_SCGC5_PORTB_MASK;	// PTB0 clock
     // ADC0->SC2 |= ADC_SC2_DMAEN_MASK;    // DMA Enable
 
+    printf("All UART registers are 32 bits wide - 4 bytes each!!\n");
+    printf("Contents of register SIM_BASE = %lu \n", *(uint32_t *)(SIM_BASE));
+    printf("Contents of register SIM_BASE + 0x04 = %lu \n", *(uint32_t *)(SIM_BASE + 0x04));
+    printf("Contents of register SIM_BASE + 0x1004 = %lu \n", *(uint32_t *)(SIM_BASE + 0x1004));
+    printf("Contents of register SIM_BASE + 0x100C = %lu \n", *(uint32_t *)(SIM_BASE + 0x100C));
+    printf("Contents of register SIM_BASE + 0x1010 = %lu \n", *(uint32_t *)(SIM_BASE + 0x1010));
+    printf("Contents of register SIM_BASE + 0x1018 = %lu \n", *(uint32_t *)(SIM_BASE + 0x1018));
+    printf("Contents of register SIM_BASE + 0x1024 = %lu \n", *(uint32_t *)(SIM_BASE + 0x1024));
+    printf("Contents of register SIM_BASE + 0x1028 = %lu \n", *(uint32_t *)(SIM_BASE + 0x1028));
+    printf("Contents of register SIM_BASE + 0x102C = %lu \n", *(uint32_t *)(SIM_BASE + 0x102C));
+
+
     pit_init();
 
     while(1)
     {
-        serial_port.write(buf, num);
-        ThisThread::sleep_for(2s);
+        led = *ptrval;
+        // serial_port.write(buf, num);
+        // ThisThread::sleep_for(2s);
     }
     
 }
@@ -52,9 +69,7 @@ void PIT0_IRQHandler(void)
 	// ADC0_SC1A = (ADC_SC1_ADCH(ADC_CHANNEL) |
 				//  (ADC0_SC1A & (ADC_SC1_AIEN_MASK | ADC_SC1_DIFF_MASK)));  
 	
-	// LED
-    // GPIOB->PTOR = (1 << LED1);e
-    buf[0] ++; 
+	*ptrval = !(*ptrval);
 }
 
 /* Initializes the PIT module to produce an interrupt every second
@@ -69,9 +84,12 @@ void pit_init(void)
 	PIT->MCR = 0;
 	
 	// Configure PIT to produce an interrupt every 1s
-    // PIT Clock on K64F has frequency of 21MHz after RESET according to table 25-17 in datasheet ?? 
+    // PIT Clock on K64F has frequency of 21MHz after RESET according to table 25-17 in datasheet XXXX
+    // Definetely FASTER than 21MHz 
+    // PIT Clock is MCG - Appararently uses the bus clock 
 
-    PIT->CHANNEL[0].LDVAL = 0x2FAF080;  // 1/21Mhz = 20ns   (1s/20ns)-1= 49,999,999 cycles or 0x2FAF079
+    // PIT->CHANNEL[0].LDVAL = 0x1406D9B;  // 1/21Mhz = 47.62ns   (1s/47.62ns)-1= 20,999,279 cycles or                                      
+    PIT->CHANNEL[0].LDVAL = 0x2FAF079;   // 1/50MHz = 
 	PIT->CHANNEL[0].TCTRL |= PIT_TCTRL_TIE_MASK | PIT_TCTRL_TEN_MASK; // Enable interrupt and enable timer
 	
 	// Enable interrupt registers ISER and ICPR
