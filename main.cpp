@@ -69,9 +69,9 @@ void pit_init(void)
 	PIT->MCR = 0;
 	
 	// Configure PIT to produce an interrupt every 1s
-    // PIT Clock on K64F has frequency of 50MHz ????
+    // PIT Clock on K64F has frequency of 21MHz after RESET according to table 25-17 in datasheet ?? 
 
-    PIT->CHANNEL[0].LDVAL = 0x2FAF080;  // 1/20Mhz = 20ns   (1s/20ns)-1= 49,999,999 cycles or 0x2FAF079
+    PIT->CHANNEL[0].LDVAL = 0x2FAF080;  // 1/21Mhz = 20ns   (1s/20ns)-1= 49,999,999 cycles or 0x2FAF079
 	PIT->CHANNEL[0].TCTRL |= PIT_TCTRL_TIE_MASK | PIT_TCTRL_TEN_MASK; // Enable interrupt and enable timer
 	
 	// Enable interrupt registers ISER and ICPR
