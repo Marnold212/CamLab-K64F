@@ -29,9 +29,15 @@ pip install mbed-ls
 pip install mbed-tools
 ```
 
+## Installing required packages for mbed-CLI 1
+mbed-cli has a number of dependencies which are required for various tasks such as compiling. One way to install these is to import either an example program or just mbed-os as described below. Within root directory of mbed-os/ there is a requirements.txt file so 'pip install (-U) -r requirements.txt' should work otherwise can install manually. When trying to compile a project it should lisst any missing packages, although this method may lead to issues with versions and dependencies. 
+ 
+
 ## Basic mbed-CLI Usage 
 
-mbed-CLI runs in command-line such as a vs-code terminal or windows CMD. Look at the documentation for [mbed-CLI 1](https://os.mbed.com/docs/mbed-os/v6.15/build-tools/install-and-set-up.html) for further details. Note that to my knowledge pyOCD does not work on Raspberry Pi architechture so tools such as flashing board or debugging don't work.
+mbed-CLI runs in command-line such as a vs-code terminal or windows CMD. Look at the documentation for [mbed-CLI 1](https://os.mbed.com/docs/mbed-os/v6.15/build-tools/mbed-cli-1.html) for further details. Note that to my knowledge pyOCD does not work on Raspberry Pi architechture so tools such as flashing board or debugging don't work.
+
+Note that compiling a project for the 1st time will take a very long time due to the number of libraries in mbed-os which need to be compiled, however the 2nd time will be much quicker, as only modified classes need to be recompiled. 
 
 ```python
 # lists available commands 
@@ -62,5 +68,5 @@ mbed import mbed-os
 # Compile an mbed project (-t and -m not required if aready set within project)
 # -f flag automatically flashes .bin file if there is a suitable device connected 
 # --sterm option opens a terminal in the command line with default settings (9600)
-mbed compile -t GCC_ARM -m k64f -f --sterm 
+mbed compile -t <toolchain> -m <target> -f --sterm 
 ```
