@@ -1,6 +1,15 @@
 # CamLab-K64F
 Code for performing data acquisition with the FRDM-K64F microcontroller
 
+## Flashing correct mbed Bootloader to K64F 
+
+This may be need to be done for a new board, or a board that was previously used with a different program such as NXP MCUXpresso. Also may be required if there is a memory issue which crashes the board. Follow instructions on https://daplink.io/?board=FRDM-K64F.
+
+- Copy of bootloader .bin file will be added to this repository
+- Reset button on K64F while connecting to PC via USB - should mount as bootloader 
+- Drag and drop the .bin firmware file to the board and wait roughly 60 seconds
+- unplug and should now have the correct firmware 
+
 ## Windows Toolchain 
 
 Breif description of tools required for this project  
@@ -70,3 +79,26 @@ mbed import mbed-os
 # --sterm option opens a terminal in the command line with default settings (9600)
 mbed compile -t <toolchain> -m <target> -f --sterm 
 ```
+
+## Debugging K64F 
+
+The K64F has an on-chip debugger that allows debugging of program. The only configuration I have successfully implemented is pyOCD using VS Code as I couldn't get OpenOCD to work on this board. Install pyOCD using pip as shown below ensuring no issues with dependencies, and check it is working by running commands "pyocd list" or "pyocd-gdbserver" in CMD with the K64F connected. 
+
+```bash
+pip install pyOCD 
+```
+We now need to configure VS Code in order to allow us to run the debugger. 
+
+## Configuring VS-Code 
+
+Configuration for vs-code to allow for debugging of K64F as well as building of code without debugging which I use to save having to write command every time I compile code. Requires the following:
+- VS Code Extensions
+  - C/C++
+  - cortex-debug (marcus25)
+- Modification of the .vscode/ folder in the project directory 
+  - launch.json
+  - tasks.json 
+  - c_cpp_properties.json
+
+There a few different methods for adding a .vscode/ folder to a project. The easiest would be to modify the one in this reopository for particular computer, another option in vs code is to attempt "Run and Debug" without one it should create a template. Also you could use the mbed command "mbed export -i vscode_gcc_arm -m K64F --profile mbed-os/tools/profiles/debug.json". 
+
