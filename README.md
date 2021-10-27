@@ -5,7 +5,7 @@ Code for performing data acquisition with the FRDM-K64F microcontroller
 
 This may be need to be done for a new board, or a board that was previously used with a different program such as NXP MCUXpresso. Also may be required if there is a memory issue which crashes the board. Follow instructions on https://daplink.io/?board=FRDM-K64F.
 
-- Copy of bootloader .bin file will be added to this repository
+- Copy of bootloader .bin file which is saved in the main branch of this repository 
 - Reset button on K64F while connecting to PC via USB - should mount as bootloader 
 - Drag and drop the .bin firmware file to the board and wait roughly 60 seconds
 - unplug and should now have the correct firmware 
@@ -24,7 +24,7 @@ Breif description of tools required for this project
 
 ## Installing GNU Arm Embedded Toolchain
 
-On windows download .exe from https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads for correct major version (INSERT HERE). Run the .exe file and select the add to PATH option in the installer. Check path of installation specifically the bin file as this path will be required. 
+On windows download .exe from https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads for correct major version - Currenty latest supported is v9 2019-q4-major. Run the .exe file and select the add to PATH option in the installer. Check path of installation specifically the bin file as this path will be required. 
 
 ## Installing mbed-CLI 1
 
