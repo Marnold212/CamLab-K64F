@@ -1,9 +1,17 @@
 # CamLab-K64F
 Code for performing data acquisition with the FRDM-K64F microcontroller
 
-## Installing mbed-CLI 1
+## Windows Toolchain 
 
-Use the package manager [pip](https://pip.pypa.io/en/stable/) to install mbed command line tools for compiling and flashing mbed device 
+Breif description of tools required for this project  
+
+- **Python 3.9** was the version I used - Can use a Virtual Environment
+  - Note that on powershell I needed to enable scripts using command "Set-ExecutionPolicy Unrestricted -Scope Process" to allow the activate script to work 
+- **mbed-CLI 1** since mbed-CLI2 doesn't seem to have the same feature set 
+- **GNU Arm Embedded Toolchain** version depends on which mbed-CLI version is used can be found on mbed-CLI documentation
+  - Note that path must be specified in mbed config 
+  - Name slightly for different versions - beware if changing path names 
+
 
 ## Installing mbed-CLI 1
 
@@ -14,12 +22,12 @@ pip install mbed-cli
 pip install mbed-greentea
 pip install mercurial
 pip install mbed-ls
-pip install mbed-os-tools
+pip install mbed-tools
 ```
 
 ## Basic mbed-CLI Usage 
 
-Look at the documentation for [mbed-CLI 1](https://os.mbed.com/docs/mbed-os/v6.15/build-tools/install-and-set-up.html) for further details 
+mbed-CLI runs in command-line such as a vs-code terminal or windows CMD. Look at the documentation for [mbed-CLI 1](https://os.mbed.com/docs/mbed-os/v6.15/build-tools/install-and-set-up.html) for further details. Note that to my knowledge pyOCD does not work on Raspberry Pi architechture so tools such as flashing board or debugging don't work.
 
 ```python
 # lists available commands 
