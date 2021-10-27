@@ -30,7 +30,7 @@ pip install mbed-tools
 ```
 
 ## Installing required packages for mbed-CLI 1
-mbed-cli has a number of dependencies which are required for various tasks such as compiling. One way to install these is to import either an example program or just mbed-os as described below. Within root directory of mbed-os/ there is a requirements.txt file so 'pip install (-U) -r requirements.txt' should work otherwise can install manually. When trying to compile a project it should lisst any missing packages, although this method may lead to issues with versions and dependencies. 
+mbed-cli has a number of dependencies which are required for various tasks such as compiling. One way to install these is to import either an example program or just mbed-os as described below. Within root directory of mbed-os/ there is a requirements.txt file so 'pip install (-U) -r requirements.txt' should work otherwise can install manually. When trying to compile a project it should list any missing packages, although this method may lead to issues with versions and dependencies. 
  
 
 ## Basic mbed-CLI Usage 
