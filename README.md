@@ -5,6 +5,7 @@ Code for performing data acquisition with the FRDM-K64F microcontroller
 
 Breif description of tools required for this project  
 
+- **Git** https://git-scm.com/download/win
 - **Python 3.9** was the version I used - Can use a Virtual Environment
   - Note that on powershell I needed to enable scripts using command "Set-ExecutionPolicy Unrestricted -Scope Process" to allow the activate script to work 
 - **mbed-CLI 1** since mbed-CLI2 doesn't seem to have the same feature set 
@@ -12,6 +13,9 @@ Breif description of tools required for this project
   - Note that path must be specified in mbed config 
   - Name slightly for different versions - beware if changing path names 
 
+## Installing GNU Arm Embedded Toolchain
+
+On windows download .exe from https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads for correct major version (INSERT HERE). Run the .exe file and select the add to PATH option in the installer. Check path of installation specifically the bin file as this path will be required. 
 
 ## Installing mbed-CLI 1
 
