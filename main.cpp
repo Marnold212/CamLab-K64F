@@ -9,16 +9,23 @@ static BufferedSerial serial_port(USBTX, USBRX);
 
 void pit_init();
 void PIT_IRQHandler(void);
+void adc_init();
 
 // Application buffer to receive the data
-char buf[MAXIMUM_BUFFER_SIZE] = "                  \r\n";
-uint32_t num = 32;
+char buf[MAXIMUM_BUFFER_SIZE] = "00\r\n";
+int num = 32;
+
 
 volatile bool val = 0;
 volatile bool *ptrval = &val;
 
 int main(){
     static DigitalOut led(LED1);
+    AnalogIn input(A0);
+
+    // Acts to initialise ADC0
+    uint16_t sample = input.read_u16();
+
     // Set desired properties (9600-8-N-1).
     serial_port.set_baud(9600);
     serial_port.set_format(
@@ -48,8 +55,15 @@ int main(){
 
     while(1)
     {
+        while(!(*(volatile uint32_t *)(ADC0_BASE) & (1U << 7))){
+            
+        }
         led = *ptrval;
-        // serial_port.write(buf, num);
+        buf[0] = (*(volatile uint32_t *)(0x4003B000 + 0x10) & 0xFF00); // Upper byte of 16 bit data 
+
+        buf[1] = (*(volatile uint32_t *)(0x4003B000 + 0x10) & 0xFF);  // Lower byte of 16 bit data 
+        // buf[1] = ADC0->R[0] & 0xFF;  // Lower byte of 16 bit data 
+        serial_port.write(buf, num);
         // ThisThread::sleep_for(2s);
     }
     
@@ -65,9 +79,8 @@ void PIT0_IRQHandler(void)
 	// Clear interrupt
 	PIT->CHANNEL[0].TFLG = PIT_TFLG_TIF_MASK;
 	
-	// Write to SC1A to start conversion with channel 12 PTB2
-	// ADC0_SC1A = (ADC_SC1_ADCH(ADC_CHANNEL) |
-				//  (ADC0_SC1A & (ADC_SC1_AIEN_MASK | ADC_SC1_DIFF_MASK)));  
+	// Write to SC1A to start conversion with channel 0
+	*(volatile uint32_t *)(ADC0_BASE) = 0x0C;  // Pin A0 
 	
 	*ptrval = !(*ptrval);
 }
@@ -97,5 +110,6 @@ void pit_init(void)
     NVIC_EnableIRQ(PIT0_IRQn);
 
 }
+
 
 
