@@ -12,7 +12,7 @@ void PIT_IRQHandler(void);
 void adc_init();
 
 // Application buffer to receive the data
-char buf[MAXIMUM_BUFFER_SIZE] = "00\r\n";
+char buf[MAXIMUM_BUFFER_SIZE] = {0};
 int num = 32;
 
 
@@ -52,6 +52,9 @@ int main(){
 
 
     pit_init();
+
+    buf[3] = '\r';
+    buf[4] = '\n';
 
     while(1)
     {
