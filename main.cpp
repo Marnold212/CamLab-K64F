@@ -11,10 +11,15 @@ void pit_init();
 void PIT_IRQHandler(void);
 
 // Application buffer to receive the data
-char buf[MAXIMUM_BUFFER_SIZE] = "0 Hello World\r\n";
-uint32_t num = 32;
+// char buf[MAXIMUM_BUFFER_SIZE] = "00\r\n"; // Not sure which part of buffer this uses - prefer below implementation 
+char buf[MAXIMUM_BUFFER_SIZE] = "0000";
+uint32_t num = 4;
 
 int main(){
+    // Initialise ADC0 
+    AnalogIn input(A0);
+    uint16_t sample = input.read_u16();
+
     // Set desired properties (9600-8-N-1).
     serial_port.set_baud(9600);
     serial_port.set_format(
@@ -30,10 +35,19 @@ int main(){
 
     pit_init();
 
+    buf[2] = '\r';
+    buf[3] = '\n';
     while(1)
     {
+        while(!(*(volatile uint32_t *)(ADC0_BASE) & (1U << 7))){
+            
+        }
+        buf[0] = ((*(volatile uint32_t *)(0x4003B000 + 0x10) >> 8) & 0xFF); // Upper byte of 16 bit data 
+
+        buf[1] = (*(volatile uint32_t *)(0x4003B000 + 0x10) & 0xFF);  // Lower byte of 16 bit data 
+        // buf[1] = ADC0->R[0] & 0xFF;  // Lower byte of 16 bit data 
         serial_port.write(buf, num);
-        ThisThread::sleep_for(2s);
+        // ThisThread::sleep_for(2s);
     }
     
 }
@@ -52,9 +66,8 @@ void PIT0_IRQHandler(void)
 	// ADC0_SC1A = (ADC_SC1_ADCH(ADC_CHANNEL) |
 				//  (ADC0_SC1A & (ADC_SC1_AIEN_MASK | ADC_SC1_DIFF_MASK)));  
 	
-	// LED
-    // GPIOB->PTOR = (1 << LED1);e
-    buf[0] ++; 
+	// Write to SC1A to start conversion with channel 0
+	*(volatile uint32_t *)(ADC0_BASE) = 0x0C;  // Pin A0 
 }
 
 /* Initializes the PIT module to produce an interrupt every second
