@@ -141,6 +141,7 @@ void Custom_K64F_ADC_Init(ADC_Type *base)
 
     adc16_config_t adc16_config;
 
+    // Calculate fastest clock parameters which don't exceed defined max sample speed 
     uint32_t bus_clock = CLOCK_GetFreq(kCLOCK_BusClk);
     uint32_t clkdiv;
     for (clkdiv = 0; clkdiv < 4; clkdiv++) {
@@ -153,6 +154,9 @@ void Custom_K64F_ADC_Init(ADC_Type *base)
     }
 
     ADC16_GetDefaultConfig(&adc16_config);
+
+    // Following setting changes reference voltage to pins: 
+    // adc16_config.referenceVoltageSource = kADC16_ReferenceVoltageSourceValt;
 
     // Test these parameters for increasing speed of sampling 
     // adc16_config.longSampleMode = kADC16_LongSampleDisabled;
