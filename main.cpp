@@ -12,8 +12,8 @@ void PIT_IRQHandler(void);
 
 // Application buffer to receive the data
 // char buf[MAXIMUM_BUFFER_SIZE] = "00\r\n"; // Not sure which part of buffer this uses - prefer below implementation 
-char buf[MAXIMUM_BUFFER_SIZE] = "0000";
-uint32_t num = 4;
+char buf[MAXIMUM_BUFFER_SIZE] = "000";
+uint32_t num = 3;
 
 int main(){
     // Initialise ADC0 
@@ -35,8 +35,9 @@ int main(){
 
     pit_init();
 
-    buf[2] = '\r';
-    buf[3] = '\n';
+    // buf[2] = '\r';
+    // buf[3] = '\n';
+    buf[2] = '\n';
     while(1)
     {
         while(!(*(volatile uint32_t *)(ADC0_BASE) & (1U << 7))){
