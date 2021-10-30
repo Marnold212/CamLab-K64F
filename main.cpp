@@ -162,11 +162,14 @@ void Custom_K64F_ADC_Init(ADC_Type *base)
     adc16_config.clockDivider = (adc16_clock_divider_t)clkdiv;
     adc16_config.resolution = kADC16_ResolutionSE16Bit;
 
-//     adc16_config.enableInterruptOnConversionCompleted = false;
+    // adc16_config.enableInterruptOnConversionCompleted = false;
 
     ADC16_Init(base, &adc16_config);
 
     ADC16_EnableHardwareTrigger(base, false); 
     ADC16_SetHardwareAverage(base, kADC16_HardwareAverageCount4);
+
+    // Check effect of following setting on accuracy + speed  
+    // ADC16_SetHardwareAverage(base, kADC16_HardwareAverageDisabled);
 }
 
