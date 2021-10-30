@@ -1,5 +1,6 @@
 
 #include "mbed.h"
+#include "mbed-os\targets\TARGET_Freescale\TARGET_MCUXpresso_MCUS\TARGET_MCU_K64F\drivers\fsl_adc16.h"
 
 // Maximum number of element the application buffer can contain
 #define MAXIMUM_BUFFER_SIZE                                                  32
@@ -9,11 +10,11 @@ static BufferedSerial serial_port(USBTX, USBRX);
 
 void pit_init();
 void PIT_IRQHandler(void);
-void adc_init();
+void Custom_K64F_ADC_Init(ADC_Type *base);
 
 // Application buffer to receive the data
-char buf[MAXIMUM_BUFFER_SIZE] = {0};
-int num = 32;
+char buf[MAXIMUM_BUFFER_SIZE] = "000";
+uint32_t num = 3;
 
 
 volatile bool val = 0;
@@ -21,10 +22,29 @@ volatile bool *ptrval = &val;
 
 int main(){
     static DigitalOut led(LED1);
-    AnalogIn input(A0);
+    // AnalogIn input0(A0);
+    // AnalogIn input1(A5);
+    
+    printf("System CLock frequency = %lu\n", CLOCK_GetFreq(kCLOCK_CoreSysClk));
+    printf("Bus CLock frequency = %lu\n", CLOCK_GetBusClkFreq());
+    printf("Bus CLock frequency = %lu\n", CLOCK_GetFreq(kCLOCK_BusClk));
 
+    Custom_K64F_ADC_Init(ADC0);
     // Acts to initialise ADC0
-    uint16_t sample = input.read_u16();
+    // uint16_t sample0 = input0.read_u16();
+    // uint16_t sample1 = input1.read_u16();
+
+    printf("\n\n");
+    printf("ADC0_SC1A : %lu \n", *(volatile uint32_t *)(ADC0_BASE));   // ADC SC1A
+    printf("ADC0_SC1B : %lu \n", *(volatile uint32_t *)(ADC0_BASE + 0x4)); // ADC SC1B
+    printf("ADC0_CFG1 : %lu \n", *(volatile uint32_t *)(ADC0_BASE + 0x8)); // ADC Config Register 1 ADCx_CFG1 
+    printf("ADC0_R0 : %lu \n", *(volatile uint32_t *)(ADC0_BASE + 0x10)); // Data Result Register 
+    printf("ADC0_CFG2 : %lu \n", *(volatile uint32_t *)(ADC0_BASE + 0x0C)); // ADC Config Register 2 ADCx_CFG2 
+    printf("ADC0_SC2 : %lu \n", *(volatile uint32_t *)(ADC0_BASE + 0x20)); // ADC Status Control Register 2 
+    printf("ADC0_SC3 : %lu \n", *(volatile uint32_t *)(ADC0_BASE + 0x24)); // ADC Status Control Register 3
+    printf("SIM_SOPT7 : %lu \n", *(volatile uint32_t *)(SIM_BASE + 0x1018)); // SIM_SOPT7
+    printf("SIM_SCGC6 : %lu \n", *(volatile uint32_t *)(SIM_BASE + 0x103C)); // SIM_SCGC6
+    // printf("PDB0_BASE : %lu \n", *(volatile uint32_t *)(PDB0_BASE));   // ADC PDB Bases register 
 
     // Set desired properties (9600-8-N-1).
     serial_port.set_baud(9600);
@@ -39,22 +59,21 @@ int main(){
 	// SIM->SCGC5 |= SIM_SCGC5_PORTB_MASK;	// PTB0 clock
     // ADC0->SC2 |= ADC_SC2_DMAEN_MASK;    // DMA Enable
 
-    printf("All UART registers are 32 bits wide - 4 bytes each!!\n");
-    printf("Contents of register SIM_BASE = %lu \n", *(uint32_t *)(SIM_BASE));
-    printf("Contents of register SIM_BASE + 0x04 = %lu \n", *(uint32_t *)(SIM_BASE + 0x04));
-    printf("Contents of register SIM_BASE + 0x1004 = %lu \n", *(uint32_t *)(SIM_BASE + 0x1004));
-    printf("Contents of register SIM_BASE + 0x100C = %lu \n", *(uint32_t *)(SIM_BASE + 0x100C));
-    printf("Contents of register SIM_BASE + 0x1010 = %lu \n", *(uint32_t *)(SIM_BASE + 0x1010));
-    printf("Contents of register SIM_BASE + 0x1018 = %lu \n", *(uint32_t *)(SIM_BASE + 0x1018));
-    printf("Contents of register SIM_BASE + 0x1024 = %lu \n", *(uint32_t *)(SIM_BASE + 0x1024));
-    printf("Contents of register SIM_BASE + 0x1028 = %lu \n", *(uint32_t *)(SIM_BASE + 0x1028));
-    printf("Contents of register SIM_BASE + 0x102C = %lu \n", *(uint32_t *)(SIM_BASE + 0x102C));
+    // printf("All UART registers are 32 bits wide - 4 bytes each!!\n");
+    // printf("Contents of register SIM_BASE = %lu \n", *(uint32_t *)(SIM_BASE));
+    // printf("Contents of register SIM_BASE + 0x04 = %lu \n", *(uint32_t *)(SIM_BASE + 0x04));
+    // printf("Contents of register SIM_BASE + 0x1004 = %lu \n", *(uint32_t *)(SIM_BASE + 0x1004));
+    // printf("Contents of register SIM_BASE + 0x100C = %lu \n", *(uint32_t *)(SIM_BASE + 0x100C));
+    // printf("Contents of register SIM_BASE + 0x1010 = %lu \n", *(uint32_t *)(SIM_BASE + 0x1010));
+    // printf("Contents of register SIM_BASE + 0x1018 = %lu \n", *(uint32_t *)(SIM_BASE + 0x1018));
+    // printf("Contents of register SIM_BASE + 0x1024 = %lu \n", *(uint32_t *)(SIM_BASE + 0x1024));
+    // printf("Contents of register SIM_BASE + 0x1028 = %lu \n", *(uint32_t *)(SIM_BASE + 0x1028));
+    // printf("Contents of register SIM_BASE + 0x102C = %lu \n", *(uint32_t *)(SIM_BASE + 0x102C));
 
 
     pit_init();
 
-    buf[3] = '\r';
-    buf[4] = '\n';
+    buf[2] = '\n';
 
     while(1)
     {
@@ -62,12 +81,11 @@ int main(){
             
         }
         led = *ptrval;
-        buf[0] = (*(volatile uint32_t *)(0x4003B000 + 0x10) & 0xFF00); // Upper byte of 16 bit data 
-
-        buf[1] = (*(volatile uint32_t *)(0x4003B000 + 0x10) & 0xFF);  // Lower byte of 16 bit data 
-        // buf[1] = ADC0->R[0] & 0xFF;  // Lower byte of 16 bit data 
+        // buf[0] = ((*(volatile uint32_t *)(0x4003B000 + 0x10) >> 8) & 0xFF); // Upper byte of 16 bit data 
+        buf[0] = ((ADC0->R[0]) >> 8) & 0xFF;  // Lower byte of 16 bit data 
+        buf[1] = ADC0->R[0];  // Lower byte of 16 bit data 
         serial_port.write(buf, num);
-        // ThisThread::sleep_for(2s);
+        // ThisThread::sleep_for(1s);
     }
     
 }
@@ -115,4 +133,40 @@ void pit_init(void)
 }
 
 
+
+void Custom_K64F_ADC_Init(ADC_Type *base)
+{
+    // #define MAX_FADC 6000000
+    // #define MAX_FADC 12000000 // Datasheet specifies range of sampling frequency to be 2-12 MHz for 16-bit mode 
+
+    #define MAX_FADC 15000000
+    adc16_config_t adc16_config;
+
+    uint32_t bus_clock = CLOCK_GetFreq(kCLOCK_BusClk);
+    uint32_t clkdiv;
+    for (clkdiv = 0; clkdiv < 4; clkdiv++) {
+        if ((bus_clock >> clkdiv) <= MAX_FADC) {
+            break;
+        }
+    }
+    if (clkdiv == 4) {
+        clkdiv = 0x3; //Set max div
+    }
+
+    ADC16_GetDefaultConfig(&adc16_config);
+
+    // Test these parameters for increasing speed of sampling 
+    // adc16_config.longSampleMode = kADC16_LongSampleDisabled;
+    // adc16_config.enableHighSpeed = false;
+
+    adc16_config.clockSource = kADC16_ClockSourceAlt0;
+    adc16_config.clockDivider = (adc16_clock_divider_t)clkdiv;
+    adc16_config.resolution = kADC16_ResolutionSE16Bit;
+
+//     adc16_config.enableInterruptOnConversionCompleted = false;
+
+    ADC16_Init(base, &adc16_config);
+    ADC16_EnableHardwareTrigger(base, false);
+    ADC16_SetHardwareAverage(base, kADC16_HardwareAverageCount4);
+}
 
