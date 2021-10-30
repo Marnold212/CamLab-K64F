@@ -137,9 +137,8 @@ void pit_init(void)
 void Custom_K64F_ADC_Init(ADC_Type *base)
 {
     // #define MAX_FADC 6000000
-    // #define MAX_FADC 12000000 // Datasheet specifies range of sampling frequency to be 2-12 MHz for 16-bit mode 
+    #define MAX_FADC 12000000 // Datasheet specifies range of sampling frequency to be 2-12 MHz for 16-bit mode 
 
-    #define MAX_FADC 15000000
     adc16_config_t adc16_config;
 
     uint32_t bus_clock = CLOCK_GetFreq(kCLOCK_BusClk);
@@ -166,7 +165,8 @@ void Custom_K64F_ADC_Init(ADC_Type *base)
 //     adc16_config.enableInterruptOnConversionCompleted = false;
 
     ADC16_Init(base, &adc16_config);
-    ADC16_EnableHardwareTrigger(base, false);
+
+    ADC16_EnableHardwareTrigger(base, false); 
     ADC16_SetHardwareAverage(base, kADC16_HardwareAverageCount4);
 }
 
