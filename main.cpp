@@ -70,7 +70,7 @@ static void Edma_Callback(edma_handle_t *handle, void *userData, bool transferDo
  * Variables
  ******************************************************************************/
 volatile bool g_Transfer_Done = false; /* DMA transfer completion flag. */
-uint32_t g_adc16SampleDataArray[DEMO_ADC16_SAMPLE_COUNT];
+uint16_t g_adc16SampleDataArray[DEMO_ADC16_SAMPLE_COUNT];
 uint32_t g_avgADCValue = 0U; /* Average ADC value .*/
 edma_handle_t g_EDMA_Handle; /* Edma handler. */
 edma_transfer_config_t g_transferConfig;
@@ -140,8 +140,8 @@ static void EDMA_Configuration(void)
     EDMA_Init(DEMO_DMA_BASEADDR, &userConfig);
     EDMA_CreateHandle(&g_EDMA_Handle, DEMO_DMA_BASEADDR, DEMO_DMA_CHANNEL);
     EDMA_SetCallback(&g_EDMA_Handle, Edma_Callback, NULL);
-    EDMA_PrepareTransfer(&g_transferConfig, (void *)ADC16_RESULT_REG_ADDR, sizeof(uint32_t),
-                         (void *)g_adc16SampleDataArray, sizeof(uint32_t), sizeof(uint32_t),
+    EDMA_PrepareTransfer(&g_transferConfig, (void *)ADC16_RESULT_REG_ADDR, sizeof(uint16_t),
+                         (void *)g_adc16SampleDataArray, sizeof(uint16_t), sizeof(uint16_t),
                          sizeof(g_adc16SampleDataArray), kEDMA_PeripheralToMemory);
     EDMA_SubmitTransfer(&g_EDMA_Handle, &g_transferConfig);
     /* Enable interrupt when transfer is done. */
@@ -197,8 +197,8 @@ static void Edma_Callback(edma_handle_t *handle, void *userData, bool transferDo
     /* Clear Edma interrupt flag. */
     EDMA_ClearChannelStatusFlags(DEMO_DMA_BASEADDR, DEMO_DMA_CHANNEL, kEDMA_InterruptFlag);
     /* Setup transfer */
-    EDMA_PrepareTransfer(&g_transferConfig, (void *)ADC16_RESULT_REG_ADDR, sizeof(uint32_t),
-                         (void *)g_adc16SampleDataArray, sizeof(uint32_t), sizeof(uint32_t),
+    EDMA_PrepareTransfer(&g_transferConfig, (void *)ADC16_RESULT_REG_ADDR, sizeof(uint16_t),
+                         (void *)g_adc16SampleDataArray, sizeof(uint16_t), sizeof(uint16_t),
                          sizeof(g_adc16SampleDataArray), kEDMA_PeripheralToMemory);
     EDMA_SetTransferConfig(DEMO_DMA_BASEADDR, DEMO_DMA_CHANNEL, &g_transferConfig, NULL);
     /* Enable transfer. */
