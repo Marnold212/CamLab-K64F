@@ -8,33 +8,34 @@
 // Create a BufferedSerial object with a default baud rate.
 static BufferedSerial serial_port(USBTX, USBRX);
 
-
 void pit_init();
 void PIT_IRQHandler(void);
 void Custom_K64F_ADC_Init(ADC_Type *base);
 void Custom_K64F_ADC_Trigger_Read_Pin(PinName pin);
+void DMA_Init(void);
+
+static bool custom_pit_initied = false;
+static void pit0_isr(void);
+void Custom_PIT_Init(void);
+void ADC_IRQHandler(void);
 
 // Application buffer to receive the data
 char buf[MAXIMUM_BUFFER_SIZE] = "000";
 uint32_t num = 3;
 
+uint32_t result;
 
 volatile bool val = 0;
 volatile bool *ptrval = &val;
 
+volatile bool val2 = 1;
+volatile bool *ptrval2 = &val2;
+
 int main(){
     static DigitalOut led(LED1);
-    // AnalogIn input0(A0);
-    // AnalogIn input1(A5);
-    
-    printf("System CLock frequency = %lu\n", CLOCK_GetFreq(kCLOCK_CoreSysClk));
-    printf("Bus CLock frequency = %lu\n", CLOCK_GetBusClkFreq());
-    printf("Bus CLock frequency = %lu\n", CLOCK_GetFreq(kCLOCK_BusClk));
+    static DigitalOut led2(LED_BLUE);
 
     Custom_K64F_ADC_Init(ADC0);
-    // Acts to initialise ADC0
-    // uint16_t sample0 = input0.read_u16();
-    // uint16_t sample1 = input1.read_u16();
 
     printf("\n\n");
     printf("ADC0_SC1A : %lu \n", *(volatile uint32_t *)(ADC0_BASE));   // ADC SC1A
@@ -56,26 +57,17 @@ int main(){
         /* stop bit */ 1
     );
 
+    buf[2] = '\n';
+
     // // Enable clocks
 	// SIM->SCGC6 |= SIM_SCGC6_ADC0_MASK;	// ADC 0 clock
 	// SIM->SCGC5 |= SIM_SCGC5_PORTB_MASK;	// PTB0 clock
-    // ADC0->SC2 |= ADC_SC2_DMAEN_MASK;    // DMA Enable
+    ADC0->SC2 |= ADC_SC2_DMAEN_MASK;    // DMA Enable
 
-    // printf("All UART registers are 32 bits wide - 4 bytes each!!\n");
-    // printf("Contents of register SIM_BASE = %lu \n", *(uint32_t *)(SIM_BASE));
-    // printf("Contents of register SIM_BASE + 0x04 = %lu \n", *(uint32_t *)(SIM_BASE + 0x04));
-    // printf("Contents of register SIM_BASE + 0x1004 = %lu \n", *(uint32_t *)(SIM_BASE + 0x1004));
-    // printf("Contents of register SIM_BASE + 0x100C = %lu \n", *(uint32_t *)(SIM_BASE + 0x100C));
-    // printf("Contents of register SIM_BASE + 0x1010 = %lu \n", *(uint32_t *)(SIM_BASE + 0x1010));
-    // printf("Contents of register SIM_BASE + 0x1018 = %lu \n", *(uint32_t *)(SIM_BASE + 0x1018));
-    // printf("Contents of register SIM_BASE + 0x1024 = %lu \n", *(uint32_t *)(SIM_BASE + 0x1024));
-    // printf("Contents of register SIM_BASE + 0x1028 = %lu \n", *(uint32_t *)(SIM_BASE + 0x1028));
-    // printf("Contents of register SIM_BASE + 0x102C = %lu \n", *(uint32_t *)(SIM_BASE + 0x102C));
+    // pit_init();
+    Custom_PIT_Init();
+    DMA_Init();
 
-
-    pit_init();
-
-    buf[2] = '\n';
 
     while(1)
     {
@@ -87,56 +79,20 @@ int main(){
         buf[0] = ((ADC0->R[0]) >> 8) & 0xFF;  // Lower byte of 16 bit data 
         buf[1] = ADC0->R[0];  // Lower byte of 16 bit data 
         serial_port.write(buf, num);
+        led2 = *ptrval2;
+        printf("\n The updated contents of results register after DMA = %lu \n", result);
         // ThisThread::sleep_for(1s);
     }
     
 }
 
-/*	Handles PIT interrupt if enabled
- * 
- * 	Starts conversion in ADC0 with single ended channel 8 (PTB0) as input
- * 
- * */
-void PIT0_IRQHandler(void)
-{	
-	// Clear interrupt
-	PIT->CHANNEL[0].TFLG = PIT_TFLG_TIF_MASK;
-	
-	// Write to SC1A to start conversion with channel 0
-	// *(volatile uint32_t *)(ADC0_BASE) = 0x0C;  // Pin A0 
-	
-    Custom_K64F_ADC_Trigger_Read_Pin(PTB2);
 
-	*ptrval = !(*ptrval);
-}
-
-/* Initializes the PIT module to produce an interrupt every second
- * 
- * */
-void pit_init(void)
+void ADC_IRQHandler(void)
 {
-	// Enable PIT clock
-	SIM->SCGC6 |= SIM_SCGC6_PIT_MASK;
-	
-	// Turn on PIT
-	PIT->MCR = 0;
-	
-	// Configure PIT to produce an interrupt every 1s
-    // PIT Clock on K64F has frequency of 21MHz after RESET according to table 25-17 in datasheet XXXX
-    // Definetely FASTER than 21MHz 
-    // PIT Clock is MCG - Appararently uses the bus clock 
-
-    // PIT->CHANNEL[0].LDVAL = 0x1406D9B;  // 1/21Mhz = 47.62ns   (1s/47.62ns)-1= 20,999,279 cycles or                                      
-    PIT->CHANNEL[0].LDVAL = 0x2FAF079;   // 1/50MHz = 
-	PIT->CHANNEL[0].TCTRL |= PIT_TCTRL_TIE_MASK | PIT_TCTRL_TEN_MASK; // Enable interrupt and enable timer
-	
-	// Enable interrupt registers ISER and ICPR
-    NVIC_SetVector(PIT0_IRQn, (uint32_t)PIT0_IRQHandler);
-    NVIC_EnableIRQ(PIT0_IRQn);
-
+    // NVIC_ClearPendingIRQ(ADC0_IRQn);
+    NVIC_DisableIRQ(ADC0_IRQn);
+    *ptrval2 = !(*ptrval2);
 }
-
-
 
 void Custom_K64F_ADC_Init(ADC_Type *base)
 {
@@ -176,6 +132,9 @@ void Custom_K64F_ADC_Init(ADC_Type *base)
 
     // Check effect of following setting on accuracy + speed  
     // ADC16_SetHardwareAverage(base, kADC16_HardwareAverageDisabled);
+    
+    NVIC_SetVector(ADC0_IRQn, (uint32_t) ADC_IRQHandler);
+    NVIC_EnableIRQ(ADC0_IRQn);
 }
 
 /*	Custom ADC Read if relevent ADC enabled
@@ -212,8 +171,124 @@ void Custom_K64F_ADC_Trigger_Read_Pin(PinName pin)
      * function, which works like writing a conversion command and executing it.
      */
     ADC16_SetChannelConfig(adc_addrs[instance], 0, &adc16_channel_config);
-
 }
 
 
 
+
+
+
+static void pit0_isr(void)
+{
+    PIT_ClearStatusFlags(PIT, kPIT_Chnl_0, PIT_TFLG_TIF_MASK);
+    // PIT_StopTimer(PIT, kPIT_Chnl_0);
+
+    // Write to SC1A to start conversion with channel 0
+	// *(volatile uint32_t *)(ADC0_BASE) = 0x0C;  // Pin A0 
+    uint32_t sc1 = ADC_SC1_ADCH(12); /* Set the channel number. */
+	ADC0->SC1[0] = sc1 |= ADC_SC1_AIEN_MASK;  // Enable interupt on conversion complete 
+    // Custom_K64F_ADC_Trigger_Read_Pin(PTB2);
+
+	*ptrval = !(*ptrval);
+    NVIC_EnableIRQ(ADC0_IRQn);
+    DMA0->ERQ = DMA_ERQ_ERQ0_MASK;
+}
+
+/** Initialize the high frequency ticker
+ *   mbed-os\targets\TARGET_Freescale\TARGET_MCUXpresso_MCUS\TARGET_MCU_K64F\drivers\fsl_pit.c
+ */
+void Custom_PIT_Init(void)
+{
+    /* Common for ticker/timer. */
+    uint32_t busClock;
+    /* Structure to initialize PIT. */
+    pit_config_t pitConfig;
+
+    PIT_GetDefaultConfig(&pitConfig);
+    PIT_Init(PIT, &pitConfig);
+
+    busClock = CLOCK_GetFreq(kCLOCK_BusClk);
+
+    /* Let the timer to count if re-init. */
+    if (!custom_pit_initied) {
+
+        // PIT_SetTimerPeriod(PIT, kPIT_Chnl_0, busClock / 1 - 1);
+        PIT_SetTimerPeriod(PIT, kPIT_Chnl_0, 0x2FAF079);
+
+        // PIT_SetTimerPeriod(PIT, kPIT_Chnl_1, 0xFFFFFFFF);
+        // PIT_SetTimerChainMode(PIT, kPIT_Chnl_1, true);
+        PIT_StartTimer(PIT, kPIT_Chnl_0);
+        // PIT_StartTimer(PIT, kPIT_Chnl_1);
+    }
+	// PIT->CHANNEL[0].TCTRL |= PIT_TCTRL_TIE_MASK | PIT_TCTRL_TEN_MASK; // Enable interrupt and enable timer
+    PIT_EnableInterrupts(PIT, kPIT_Chnl_0, kPIT_TimerInterruptEnable);
+    
+    // PIT_ClearStatusFlags(PIT, kPIT_Chnl_0, PIT_TFLG_TIF_MASK);
+    NVIC_SetVector(PIT0_IRQn, (uint32_t) pit0_isr);
+    NVIC_EnableIRQ(PIT0_IRQn);
+
+    custom_pit_initied = true;
+}
+
+
+void DMA_Init()
+{
+    uint32_t ADC0_DMA_CHANNEL = 0;
+ 
+    // Enable clock for DMAMUX and DMA
+	SIM->SCGC6 |= SIM_SCGC6_DMAMUX_MASK;
+	SIM->SCGC7 |= SIM_SCGC7_DMA_MASK;
+    // Enable Channel 0 and set ADC0 as DMA request source 
+	DMAMUX->CHCFG[0] |= DMAMUX_CHCFG_ENBL_MASK | DMAMUX_CHCFG_SOURCE(40);
+	// Enable request signal for channel 0 
+	DMA0->ERQ = DMA_ERQ_ERQ0_MASK;
+    // DMA0->TCD[ADC0_DMA_CHANNEL].ERQ |= DMA_ERQ_ERQ0_MASK;
+    // DMA0->ERQ
+    // Setup control and status register
+	DMA0->TCD[ADC0_DMA_CHANNEL].CSR = 0;
+
+    
+    // CLOCK_EnableClock(s_dmamuxClockName[DMAMUX_GetInstance(DMAMUX)]);
+    DMAMUX_SetSource(DMAMUX, ADC0_DMA_CHANNEL, kDmaRequestMux0ADC0);
+    DMAMUX_EnableChannel(DMAMUX, ADC0_DMA_CHANNEL);
+    // DMAMUX_EnablePeriodTrigger(DMAMUX, ADC0_DMA_CHANNEL);
+
+    edma_config_t edma_ADC0_config;
+    EDMA_GetDefaultConfig(&edma_ADC0_config);
+    EDMA_Init(DMA0, &edma_ADC0_config);
+
+    edma_tcd_t edma_ADC0_TCD;
+
+    edma_transfer_config_t edma_ADC0_transfer_config;
+    EDMA_PrepareTransfer(&edma_ADC0_transfer_config, (void *)(ADC0_BASE + 0x10), kEDMA_TransferSize4Bytes, &result, kEDMA_TransferSize4Bytes, kEDMA_TransferSize4Bytes, kEDMA_TransferSize4Bytes, kEDMA_PeripheralToMemory);
+    EDMA_SetTransferConfig(DMA0, ADC0_DMA_CHANNEL, &edma_ADC0_transfer_config, NULL);
+
+/*
+    uint32_t ADC0_DMA_CHANNEL = 0;
+    // CLOCK_EnableClock(s_dmamuxClockName[DMAMUX_GetInstance(DMAMUX)]);
+    // DMAMUX_SetSource(DMAMUX0, ADC0_DMA_CHANNEL, kDmaRequestMux0ADC0);
+    // DMAMUX_EnableChannel(kDmaRequestMux0ADC0, ADC0_DMA_CHANNEL);
+    // DMAMUX_EnablePeriodTrigger(DMAMUX0, ADC0_DMA_CHANNEL);
+
+    // // dma_channel_allocate(kDmaRequestMux0ADC0);   // Automatically finds 1st available DA chanel, however for our use, better to specify since we want to use 1-4 for auto trigger 
+
+    edma_config_t edma_ADC0_config;
+    EDMA_GetDefaultConfig(&edma_ADC0_config);
+    EDMA_Init(DMA0, &edma_ADC0_config);
+
+
+    edma_transfer_config_t edma_ADC0_transfer_config;
+    EDMA_PrepareTransfer(&edma_ADC0_transfer_config, (void *)(ADC0_BASE + 0x12), kEDMA_TransferSize2Bytes, &result, kEDMA_TransferSize2Bytes, kEDMA_TransferSize2Bytes, kEDMA_TransferSize2Bytes, kEDMA_PeripheralToMemory);
+    // edma_ADC0_transfer_config.srcAddr = ADC0_BASE + 0x12; // Note right 2 bytes of results register //   &(ADC0->R[0]);
+    // edma_ADC0_transfer_config.destAddr = result;
+    // edma_ADC0_transfer_config.srcTransferSize = kEDMA_TransferSize2Bytes;
+    // edma_ADC0_transfer_config.destTransferSize = kEDMA_TransferSize2Bytes;
+    // edma_ADC0_transfer_config.srcOffset = 0;
+    // edma_ADC0_transfer_config.destOffset = 0;
+    // edma_ADC0_transfer_config.minorLoopBytes = 1;
+    // edma_ADC0_transfer_config.majorLoopCounts = 1;
+
+    EDMA_SetTransferConfig(DMA0, ADC0_DMA_CHANNEL, &edma_ADC0_transfer_config, NULL);
+    EDMA_EnableChannelInterrupts(DMA0, ADC0_DMA_CHANNEL, kEDMA_MajorInterruptEnable);
+*/
+}
