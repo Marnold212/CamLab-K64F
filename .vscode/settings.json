@@ -8,6 +8,8 @@
         "array": "cpp",
         "string": "cpp",
         "string_view": "cpp",
-        "mstd_iterator": "cpp"
+        "mstd_iterator": "cpp",
+        "functional": "cpp",
+        "us_ticker_api.h": "c"
     }
 }

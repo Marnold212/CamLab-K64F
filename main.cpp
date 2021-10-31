@@ -33,6 +33,16 @@
 #define DEMO_DMA_IRQ_ID          DMA0_IRQn
 #define DEMO_ADC16_SAMPLE_COUNT 16U /* The ADC16 sample count. */
 
+// Maximum number of element the application buffer can contain
+#define MAXIMUM_BUFFER_SIZE                                                  32
+// Create a BufferedSerial object with a default baud rate.
+static BufferedSerial serial_port(USBTX, USBRX);
+// Application buffer to receive the data
+// char buf[MAXIMUM_BUFFER_SIZE] = "00\r\n"; // Not sure which part of buffer this uses - prefer below implementation 
+char buf[MAXIMUM_BUFFER_SIZE] = "{0}";
+int num = (8*2) + 1;  // 8 * 2 bytes + EOL char   
+
+
 /*******************************************************************************
  * Prototypes
  ******************************************************************************/
@@ -103,6 +113,7 @@ int main(void)
     printf("ADC Full Range: %lu\r\n", g_Adc16_16bitFullRange);
     printf("Press any key to get user channel's ADC value ...\r\n");
 
+    buf[num-1] = '\n';
     while (1)
     {
         // GETCHAR();
@@ -110,8 +121,13 @@ int main(void)
         // while (!g_Transfer_Done)
         // {
         // }
-        ProcessSampleData();
-        printf("ADC value: %lu\r\n", g_avgADCValue);
+        // ProcessSampleData();
+        // printf("ADC value: %lu\r\n", g_avgADCValue);
+        for(int x = 0; x < (num-1) ; x+=2){
+            buf[x] = (g_adc16SampleDataArray[x] >> 8) & 0xff;
+            buf[x+1] = g_adc16SampleDataArray[x] & 0xff;
+        }
+        serial_port.write(buf, num);
     }
 }
 
