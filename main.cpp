@@ -62,11 +62,6 @@ static void DMAMUX_Configuration(void);
 static void ADC16_Configuration(void);
 
 /*!
- * @brief Process ADC values.
- */
-static void ProcessSampleData(void);
-
-/*!
  * @brief Callback function for EDMA.
  */
 static void Edma_Callback(edma_handle_t *handle, void *userData, bool transferDone, uint32_t tcds);
@@ -121,8 +116,6 @@ int main(void)
         // while (!g_Transfer_Done)
         // {
         // }
-        // ProcessSampleData();
-        // printf("ADC value: %lu\r\n", g_avgADCValue);
         for(int x = 0; x < (num-1) ; x+=2){
             buf[x] = (g_adc16SampleDataArray[x] >> 8) & 0xff;
             buf[x+1] = g_adc16SampleDataArray[x] & 0xff;
@@ -155,6 +148,7 @@ static void EDMA_Configuration(void)
     EDMA_EnableChannelInterrupts(DEMO_DMA_BASEADDR, DEMO_DMA_CHANNEL, kEDMA_MajorInterruptEnable);
 #if defined(FSL_FEATURE_EDMA_ASYNCHRO_REQUEST_CHANNEL_COUNT) && FSL_FEATURE_EDMA_ASYNCHRO_REQUEST_CHANNEL_COUNT
     /* Enable async DMA request. */
+    // NOT SURE WHAT THIS DOES 
     EDMA_EnableAsyncRequest(DEMO_DMA_BASEADDR, DEMO_DMA_CHANNEL, true);
 #endif /* FSL_FEATURE_EDMA_ASYNCHRO_REQUEST_CHANNEL_COUNT */
     /* Enable transfer. */
@@ -196,25 +190,6 @@ static void ADC16_Configuration(void)
     ADC16_EnableHardwareTrigger(DEMO_ADC16_BASEADDR, false);
     /* Enable DMA. */
     ADC16_EnableDMA(DEMO_ADC16_BASEADDR, true);
-}
-
-static void ProcessSampleData(void)
-{
-    uint32_t i = 0U;
-
-    g_avgADCValue = 0;
-    /* Get average adc value. */
-    for (i = 0; i < DEMO_ADC16_SAMPLE_COUNT; i++)
-    {
-        g_avgADCValue += g_adc16SampleDataArray[i];
-    }
-    g_avgADCValue = g_avgADCValue / DEMO_ADC16_SAMPLE_COUNT;
-
-    /* Reset old value. */
-    for (i = 0; i < DEMO_ADC16_SAMPLE_COUNT; i++)
-    {
-        g_adc16SampleDataArray[i] = 0U;
-    }
 }
 
 static void Edma_Callback(edma_handle_t *handle, void *userData, bool transferDone, uint32_t tcds)
