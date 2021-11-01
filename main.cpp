@@ -39,7 +39,7 @@ uint32_t num = (8*2)+1;
 #define DEMO_DMA_BASEADDR        DMA0
 #define ADC16_RESULT_REG_ADDR    0x4003b010U
 #define DEMO_DMA_IRQ_ID          DMA0_IRQn
-#define DEMO_ADC16_SAMPLE_COUNT 16U /* The ADC16 sample count. */
+#define DEMO_ADC16_SAMPLE_COUNT 4U /* The ADC16 sample count. */
 
 /*******************************************************************************
  * Prototypes
@@ -79,19 +79,18 @@ void ADC_IRQHandler(void);
  * Variables
  ******************************************************************************/
 volatile bool g_Transfer_Done = false; /* DMA transfer completion flag. */
-uint32_t g_adc16SampleDataArray[DEMO_ADC16_SAMPLE_COUNT];
+uint32_t g_adc16SampleDataArray[DEMO_ADC16_SAMPLE_COUNT] = {0};
 uint32_t g_avgADCValue = 0U; /* Average ADC value .*/
 edma_handle_t g_EDMA_Handle; /* Edma handler. */
 edma_transfer_config_t g_transferConfig;
 const uint32_t g_Adc16_16bitFullRange = 65536U;
 
-volatile bool val = 0;
-volatile bool *ptrval = &val;
-
-volatile bool val2 = 1;
-volatile bool *ptrval2 = &val2;
-
-
+uint8_t ADC_0_Selection = 0;
+uint8_t ADC_1_Selection = 0;
+#define No_ADC_0_Channels     4
+#define No_ADC_1_Channels     4
+uint32_t ADC_1_Channels[] = {0x0C, 0x0D, 0x0E, 0x0F};
+uint32_t ADC_0_Channels[] = {0x0C, 0x0D, 0x0E, 0x0F};
 
 /*******************************************************************************
  * Code
@@ -101,8 +100,6 @@ volatile bool *ptrval2 = &val2;
  */
 int main(void)
 {
-    static DigitalOut led(LED1);
-    static DigitalOut led2(LED_BLUE);
 
     adc16_channel_config_t adcChnConfig;
 
@@ -126,8 +123,6 @@ int main(void)
     adcChnConfig.enableInterruptOnConversionCompleted = false;
     ADC16_SetChannelConfig(DEMO_ADC16_BASEADDR, DEMO_ADC16_CHANNEL_GROUP, &adcChnConfig);
 
-    NVIC_SetVector(ADC0_IRQn, (uint32_t) ADC_IRQHandler);
-    NVIC_EnableIRQ(ADC0_IRQn);
     buf[num-1] = '\n';
 
     printf("ADC Full Range: %lu\r\n", g_Adc16_16bitFullRange);
@@ -142,9 +137,11 @@ int main(void)
         }
         // ProcessSampleData();
         // printf("ADC value: %lu\r\n", g_avgADCValue);
-        for(int x = 0; x < (num-1) ; x+=2){
-            buf[x] = (g_adc16SampleDataArray[x] >> 8) & 0xff;
-            buf[x+1] = g_adc16SampleDataArray[x] & 0xff;
+        for(int x = 0; x < (num-1)/2 ; x++){
+            buf[(2*x) + 0] = (g_adc16SampleDataArray[x] >> 8) & 0xff;
+            buf[(2*x) + 1] = g_adc16SampleDataArray[x] & 0xff;
+            // buf[(2*x) + (2*DEMO_ADC16_SAMPLE_COUNT) + 0] = ((g_adc16SampleDataArray[x]+ (2*DEMO_ADC16_SAMPLE_COUNT)) >> 8) & 0xff;
+            // buf[(2*x) + (2*DEMO_ADC16_SAMPLE_COUNT) + 1] = (g_adc16SampleDataArray[x]+ (2*DEMO_ADC16_SAMPLE_COUNT)) & 0xff;
         }
         serial_port.write(buf, num);
     }
@@ -217,25 +214,6 @@ static void ADC16_Configuration(void)
     ADC16_EnableDMA(DEMO_ADC16_BASEADDR, true);
 }
 
-static void ProcessSampleData(void)
-{
-    uint32_t i = 0U;
-
-    g_avgADCValue = 0;
-    /* Get average adc value. */
-    for (i = 0; i < DEMO_ADC16_SAMPLE_COUNT; i++)
-    {
-        g_avgADCValue += g_adc16SampleDataArray[i];
-    }
-    g_avgADCValue = g_avgADCValue / DEMO_ADC16_SAMPLE_COUNT;
-
-    /* Reset old value. */
-    for (i = 0; i < DEMO_ADC16_SAMPLE_COUNT; i++)
-    {
-        g_adc16SampleDataArray[i] = 0U;
-    }
-}
-
 static void Edma_Callback(edma_handle_t *handle, void *userData, bool transferDone, uint32_t tcds)
 {
     /* Clear Edma interrupt flag. */
@@ -258,15 +236,15 @@ static void pit0_isr(void)
     // Write to SC1A to start conversion with channel 0
 	// *(volatile uint32_t *)(ADC0_BASE) = 0x4C;  // Pin A0 
 
-    ADC0->SC1[0] = 0x4C;
+    ADC_0_Selection = (ADC_0_Selection + 1) % No_ADC_0_Channels;
+    
+    uint32_t ADC0sc1a = ADC_0_Channels[ADC_0_Selection];
+    ADC0->SC1[0] = ADC0sc1a;
 
     // uint32_t sc1 = ADC_SC1_ADCH(12); /* Set the channel number. */
 	// ADC0->SC1[0] = sc1 |= ADC_SC1_AIEN_MASK;  // Enable interupt on conversion complete 
     // // Custom_K64F_ADC_Trigger_Read_Pin(PTB2);
     
-
-	*ptrval = !(*ptrval);
-    NVIC_EnableIRQ(ADC0_IRQn);
     DMA0->ERQ = DMA_ERQ_ERQ0_MASK;
 }
 
@@ -305,11 +283,4 @@ void Custom_PIT_Init(void)
     NVIC_EnableIRQ(PIT0_IRQn);
 
     custom_pit_initied = true;
-}
-
-void ADC_IRQHandler(void)
-{
-    // NVIC_ClearPendingIRQ(ADC0_IRQn);
-    NVIC_DisableIRQ(ADC0_IRQn);
-    *ptrval2 = !(*ptrval2);
 }
