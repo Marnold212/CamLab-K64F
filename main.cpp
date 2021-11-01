@@ -19,6 +19,14 @@
 #include "mbed.h"
 #include "mbed-os\targets\TARGET_Freescale\TARGET_MCUXpresso_MCUS\TARGET_MCU_K64F\drivers\fsl_adc16.h"
 
+// Maximum number of element the application buffer can contain
+#define MAXIMUM_BUFFER_SIZE                                                  32
+// Create a BufferedSerial object with a default baud rate.
+static BufferedSerial serial_port(USBTX, USBRX);
+// Application buffer to receive the data
+char buf[MAXIMUM_BUFFER_SIZE] = "{0}";
+uint32_t num = (8*2)+1;
+
 /*******************************************************************************
  * Definitions
  ******************************************************************************/
@@ -61,6 +69,12 @@ static void ProcessSampleData(void);
  */
 static void Edma_Callback(edma_handle_t *handle, void *userData, bool transferDone, uint32_t tcds);
 
+
+static bool custom_pit_initied = false;
+static void pit0_isr(void);
+void Custom_PIT_Init(void);
+void ADC_IRQHandler(void);
+
 /*******************************************************************************
  * Variables
  ******************************************************************************/
@@ -71,6 +85,14 @@ edma_handle_t g_EDMA_Handle; /* Edma handler. */
 edma_transfer_config_t g_transferConfig;
 const uint32_t g_Adc16_16bitFullRange = 65536U;
 
+volatile bool val = 0;
+volatile bool *ptrval = &val;
+
+volatile bool val2 = 1;
+volatile bool *ptrval2 = &val2;
+
+
+
 /*******************************************************************************
  * Code
  ******************************************************************************/
@@ -79,6 +101,9 @@ const uint32_t g_Adc16_16bitFullRange = 65536U;
  */
 int main(void)
 {
+    static DigitalOut led(LED1);
+    static DigitalOut led2(LED_BLUE);
+
     adc16_channel_config_t adcChnConfig;
 
     /* Initialize board hardware. */
@@ -91,6 +116,7 @@ int main(void)
     EDMA_Configuration();   /* Initialize EDMA. */
     DMAMUX_Configuration(); /* Initialize DMAMUX. */
     ADC16_Configuration();  /* Initialize ADC16. */
+    Custom_PIT_Init();
 
     /* Configure channel and SW trigger ADC16. */
     adcChnConfig.channelNumber = DEMO_ADC16_CHANNEL;
@@ -99,6 +125,10 @@ int main(void)
 #endif
     adcChnConfig.enableInterruptOnConversionCompleted = false;
     ADC16_SetChannelConfig(DEMO_ADC16_BASEADDR, DEMO_ADC16_CHANNEL_GROUP, &adcChnConfig);
+
+    NVIC_SetVector(ADC0_IRQn, (uint32_t) ADC_IRQHandler);
+    NVIC_EnableIRQ(ADC0_IRQn);
+    buf[num-1] = '\n';
 
     printf("ADC Full Range: %lu\r\n", g_Adc16_16bitFullRange);
     printf("Press any key to get user channel's ADC value ...\r\n");
@@ -110,8 +140,13 @@ int main(void)
         // while (!g_Transfer_Done)
         // {
         // }
-        ProcessSampleData();
-        printf("ADC value: %lu\r\n", g_avgADCValue);
+        // ProcessSampleData();
+        // printf("ADC value: %lu\r\n", g_avgADCValue);
+        for(int x = 0; x < (num-1) ; x+=2){
+            buf[x] = (g_adc16SampleDataArray[x] >> 8) & 0xff;
+            buf[x+1] = g_adc16SampleDataArray[x] & 0xff;
+        }
+        serial_port.write(buf, num);
     }
 }
 
@@ -155,13 +190,13 @@ static void ADC16_Configuration(void)
      */
     ADC16_GetDefaultConfig(&adcUserConfig);
     adcUserConfig.resolution                 = kADC16_Resolution16Bit;
-    adcUserConfig.enableContinuousConversion = true;
+    adcUserConfig.enableContinuousConversion = false;
     adcUserConfig.clockSource                = kADC16_ClockSourceAsynchronousClock;
 
-    adcUserConfig.enableLowPower = true;
-#if ((defined BOARD_ADC_USE_ALT_VREF) && BOARD_ADC_USE_ALT_VREF)
-    adcUserConfig.referenceVoltageSource = kADC16_ReferenceVoltageSourceValt;
-#endif
+    adcUserConfig.enableLowPower = false;
+// #if ((defined BOARD_ADC_USE_ALT_VREF) && BOARD_ADC_USE_ALT_VREF)
+//     adcUserConfig.referenceVoltageSource = kADC16_ReferenceVoltageSourceValt;
+// #endif
     ADC16_Init(DEMO_ADC16_BASEADDR, &adcUserConfig);
 
 #if defined(FSL_FEATURE_ADC16_HAS_CALIBRATION) && FSL_FEATURE_ADC16_HAS_CALIBRATION
@@ -213,4 +248,68 @@ static void Edma_Callback(edma_handle_t *handle, void *userData, bool transferDo
     /* Enable transfer. */
     EDMA_StartTransfer(&g_EDMA_Handle);
     g_Transfer_Done = true;
+}
+
+static void pit0_isr(void)
+{
+    PIT_ClearStatusFlags(PIT, kPIT_Chnl_0, PIT_TFLG_TIF_MASK);
+    // PIT_StopTimer(PIT, kPIT_Chnl_0);
+
+    // Write to SC1A to start conversion with channel 0
+	// *(volatile uint32_t *)(ADC0_BASE) = 0x4C;  // Pin A0 
+
+    ADC0->SC1[0] = 0x4C;
+
+    // uint32_t sc1 = ADC_SC1_ADCH(12); /* Set the channel number. */
+	// ADC0->SC1[0] = sc1 |= ADC_SC1_AIEN_MASK;  // Enable interupt on conversion complete 
+    // // Custom_K64F_ADC_Trigger_Read_Pin(PTB2);
+    
+
+	*ptrval = !(*ptrval);
+    NVIC_EnableIRQ(ADC0_IRQn);
+    DMA0->ERQ = DMA_ERQ_ERQ0_MASK;
+}
+
+/** Initialize the high frequency ticker
+ *   mbed-os\targets\TARGET_Freescale\TARGET_MCUXpresso_MCUS\TARGET_MCU_K64F\drivers\fsl_pit.c
+ */
+void Custom_PIT_Init(void)
+{
+    /* Common for ticker/timer. */
+    uint32_t busClock;
+    /* Structure to initialize PIT. */
+    pit_config_t pitConfig;
+
+    PIT_GetDefaultConfig(&pitConfig);
+    PIT_Init(PIT, &pitConfig);
+
+    busClock = CLOCK_GetFreq(kCLOCK_BusClk);
+
+    /* Let the timer to count if re-init. */
+    if (!custom_pit_initied) {
+
+        // PIT_SetTimerPeriod(PIT, kPIT_Chnl_0, busClock / 1 - 1);
+        // PIT_SetTimerPeriod(PIT, kPIT_Chnl_0, 0x2FAF079); // Roughly 1s 
+        PIT_SetTimerPeriod(PIT, kPIT_Chnl_0, 0x04AF079);
+
+        // PIT_SetTimerPeriod(PIT, kPIT_Chnl_1, 0xFFFFFFFF);
+        // PIT_SetTimerChainMode(PIT, kPIT_Chnl_1, true);
+        PIT_StartTimer(PIT, kPIT_Chnl_0);
+        // PIT_StartTimer(PIT, kPIT_Chnl_1);
+    }
+	// PIT->CHANNEL[0].TCTRL |= PIT_TCTRL_TIE_MASK | PIT_TCTRL_TEN_MASK; // Enable interrupt and enable timer
+    PIT_EnableInterrupts(PIT, kPIT_Chnl_0, kPIT_TimerInterruptEnable);
+    
+    // PIT_ClearStatusFlags(PIT, kPIT_Chnl_0, PIT_TFLG_TIF_MASK);
+    NVIC_SetVector(PIT0_IRQn, (uint32_t) pit0_isr);
+    NVIC_EnableIRQ(PIT0_IRQn);
+
+    custom_pit_initied = true;
+}
+
+void ADC_IRQHandler(void)
+{
+    // NVIC_ClearPendingIRQ(ADC0_IRQn);
+    NVIC_DisableIRQ(ADC0_IRQn);
+    *ptrval2 = !(*ptrval2);
 }
