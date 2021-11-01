@@ -136,10 +136,10 @@ int main(void)
     while (1)
     {
         // GETCHAR();
-        // g_Transfer_Done = false;
-        // while (!g_Transfer_Done)
-        // {
-        // }
+        g_Transfer_Done = false;
+        while (!g_Transfer_Done)
+        {
+        }
         // ProcessSampleData();
         // printf("ADC value: %lu\r\n", g_avgADCValue);
         for(int x = 0; x < (num-1) ; x+=2){
@@ -290,7 +290,7 @@ void Custom_PIT_Init(void)
 
         // PIT_SetTimerPeriod(PIT, kPIT_Chnl_0, busClock / 1 - 1);
         // PIT_SetTimerPeriod(PIT, kPIT_Chnl_0, 0x2FAF079); // Roughly 1s 
-        PIT_SetTimerPeriod(PIT, kPIT_Chnl_0, 0x04AF079);
+        PIT_SetTimerPeriod(PIT, kPIT_Chnl_0, 0x1000);
 
         // PIT_SetTimerPeriod(PIT, kPIT_Chnl_1, 0xFFFFFFFF);
         // PIT_SetTimerChainMode(PIT, kPIT_Chnl_1, true);
