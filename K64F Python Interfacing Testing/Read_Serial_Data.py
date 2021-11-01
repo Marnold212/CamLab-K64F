@@ -28,16 +28,22 @@ else:
                 # Wait until there is data waiting in the serial buffer
                 if serialPort.in_waiting > 0:
 
-                    # Read data out of the buffer until a carraige return / new line is found
+                    # Read data out of the buffer until a carriage return / new line is found
                     
                     # serialString = serialPort.read_until()    # Read until expected sequence found - by default '\n'
-                    serialString = serialPort.readline()
+                    serialString = serialPort.readline().hex()
+                    # serialString = serialPort.read_until('\n').hex()
 
                     # Print the contents of the serial data
                     try:
                         # print(serialString.decode("Ascii"))
-                        print(serialString)
-                        # print(serialString.decode("uint8") + "\r\n")   #uint8array
+                        # print(serialString)
+                        if(len(serialString) == 6):   # 6 = (No. Bytes * 2 since each byte is 2 hex characters) - 1 EOL byte + 2 bytes for 1 16 bit ADC value 
+                            print(int(serialString[0:4], 16))     # The int('8A01', 16) function converts hex to 16 bit unsigned int - assumes leftmost bit is most significant 
+                        
+                        elif(len(serialString) == 34):
+                            print("ADC01 = %i ; AD02 = %i ; AD03 = %i ; ADC04 = %i ; AD05 = %i ; AD06 = %i ; AD07 = %i ; AD08 = %i" % (int(serialString[0:4], 16), int(serialString[4:8], 16), int(serialString[8:12], 16), int(serialString[12:16], 16), int(serialString[16:20], 16), int(serialString[20:24], 16), int(serialString[24:28], 16), int(serialString[28:32], 16)))     # The int('8A01', 16) function converts hex to 16 bit unsigned int - assumes leftmost bit is most significant
+                        # print(serialString.decode("uint8"))   #uint8array
                         # break
                     except:
                         pass
