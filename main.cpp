@@ -13,26 +13,28 @@ void PIT_IRQHandler(void);
 void Custom_K64F_ADC_Init(ADC_Type *base);
 
 // Application buffer to receive the data
-char buf[MAXIMUM_BUFFER_SIZE] = "000";
-uint32_t num = 3;
+char buf[MAXIMUM_BUFFER_SIZE] = "{0}";
+uint32_t num = (8*2) + 1;
 
+uint8_t ADC_0_Selection = 0;
+uint8_t ADC_1_Selection = 0;
+#define No_ADC_0_Channels     4
+#define No_ADC_1_Channels     4
+uint32_t ADC_1_Channels[] = {0x0C, 0x0D, 0x0E, 0x0F};
+uint32_t ADC_0_Channels[] = {0x0C, 0x0D, 0x0E, 0x0F};
 
 volatile bool val = 0;
 volatile bool *ptrval = &val;
 
 int main(){
     static DigitalOut led(LED1);
-    // AnalogIn input0(A0);
-    // AnalogIn input1(A5);
     
     printf("System CLock frequency = %lu\n", CLOCK_GetFreq(kCLOCK_CoreSysClk));
     printf("Bus CLock frequency = %lu\n", CLOCK_GetBusClkFreq());
     printf("Bus CLock frequency = %lu\n", CLOCK_GetFreq(kCLOCK_BusClk));
 
     Custom_K64F_ADC_Init(ADC0);
-    // Acts to initialise ADC0
-    // uint16_t sample0 = input0.read_u16();
-    // uint16_t sample1 = input1.read_u16();
+    Custom_K64F_ADC_Init(ADC1);
 
     printf("\n\n");
     printf("ADC0_SC1A : %lu \n", *(volatile uint32_t *)(ADC0_BASE));   // ADC SC1A
@@ -73,17 +75,19 @@ int main(){
 
     pit_init();
 
-    buf[2] = '\n';
+    buf[num-1] = '\n';
 
     while(1)
     {
-        while(!(*(volatile uint32_t *)(ADC0_BASE) & (1U << 7))){
+        while(!(*(volatile uint32_t *)(ADC0_BASE) & (1U << 7)) && !(*(volatile uint32_t *)(ADC1_BASE) & (1U << 7))){
             
         }
         led = *ptrval;
         // buf[0] = ((*(volatile uint32_t *)(0x4003B000 + 0x10) >> 8) & 0xFF); // Upper byte of 16 bit data 
-        buf[0] = ((ADC0->R[0]) >> 8) & 0xFF;  // Lower byte of 16 bit data 
-        buf[1] = ADC0->R[0];  // Lower byte of 16 bit data 
+        buf[(2 * ADC_0_Selection) + 0] = ((ADC0->R[0]) >> 8) & 0xFF;  // Lower byte of 16 bit data 
+        buf[(2 * ADC_0_Selection) + 1] = ADC0->R[0];  // Lower byte of 16 bit data 
+        buf[(2 * ADC_1_Selection) + 8] = ((ADC1->R[0]) >> 8) & 0xFF;  // Lower byte of 16 bit data 
+        buf[(2 * ADC_1_Selection) + 9] = ADC1->R[0];  // Lower byte of 16 bit data 
         serial_port.write(buf, num);
         // ThisThread::sleep_for(1s);
     }
@@ -100,9 +104,16 @@ void PIT0_IRQHandler(void)
 	// Clear interrupt
 	PIT->CHANNEL[0].TFLG = PIT_TFLG_TIF_MASK;
 	
+    ADC_0_Selection = (ADC_0_Selection + 1) % No_ADC_0_Channels;
+    ADC_1_Selection = (ADC_1_Selection + 1) % No_ADC_1_Channels;
+    
+    uint32_t ADC0sc1a = ADC_0_Channels[ADC_0_Selection];
+    uint32_t ADC1sc1a = ADC_1_Channels[ADC_1_Selection];
+
 	// Write to SC1A to start conversion with channel 0
-	*(volatile uint32_t *)(ADC0_BASE) = 0x0C;  // Pin A0 
-	
+	*(volatile uint32_t *)(ADC0_BASE) = ADC0sc1a;  
+    *(volatile uint32_t *)(ADC1_BASE) = ADC1sc1a;  
+
 	*ptrval = !(*ptrval);
 }
 
@@ -123,8 +134,9 @@ void pit_init(void)
     // PIT Clock is MCG - Appararently uses the bus clock 
 
     // PIT->CHANNEL[0].LDVAL = 0x1406D9B;  // 1/21Mhz = 47.62ns   (1s/47.62ns)-1= 20,999,279 cycles or                                      
-    PIT->CHANNEL[0].LDVAL = 0x2FAF079;   // 1/50MHz = 
-	PIT->CHANNEL[0].TCTRL |= PIT_TCTRL_TIE_MASK | PIT_TCTRL_TEN_MASK; // Enable interrupt and enable timer
+    // PIT->CHANNEL[0].LDVAL = 0x2FAF079;   // 1/50MHz = 
+	PIT->CHANNEL[0].LDVAL = 0x000F079; 
+    PIT->CHANNEL[0].TCTRL |= PIT_TCTRL_TIE_MASK | PIT_TCTRL_TEN_MASK; // Enable interrupt and enable timer
 	
 	// Enable interrupt registers ISER and ICPR
     NVIC_SetVector(PIT0_IRQn, (uint32_t)PIT0_IRQHandler);
