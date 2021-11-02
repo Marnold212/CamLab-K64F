@@ -17,307 +17,179 @@
 // #include "board.h"
 
 #include "mbed.h"
-#include "mbed-os\targets\TARGET_Freescale\TARGET_MCUXpresso_MCUS\TARGET_MCU_K64F\drivers\fsl_adc16.h"
+// #include "mbed-os\targets\TARGET_Freescale\TARGET_MCUXpresso_MCUS\TARGET_MCU_K64F\drivers\fsl_edma.h"
 
-// Maximum number of element the application buffer can contain
-#define MAXIMUM_BUFFER_SIZE                                                  32
-// Create a BufferedSerial object with a default baud rate.
-static BufferedSerial serial_port(USBTX, USBRX);
-// Application buffer to receive the data
-char buf[MAXIMUM_BUFFER_SIZE] = "{0}";
-uint32_t num = (8*2)+1;
 
 /*******************************************************************************
  * Definitions
  ******************************************************************************/
-#define DEMO_ADC16_CHANNEL       12U
-#define DEMO_ADC16_CHANNEL_GROUP 0U
-#define DEMO_ADC16_BASEADDR      ADC0
-#define DEMO_DMAMUX_BASEADDR     DMAMUX0
-#define DEMO_DMA_CHANNEL         0U
-#define DEMO_DMA_ADC_SOURCE      40U
-#define DEMO_DMA_BASEADDR        DMA0
-#define ADC16_RESULT_REG_ADDR    0x4003b010U
-#define DEMO_DMA_IRQ_ID          DMA0_IRQn
-#define DEMO_ADC16_SAMPLE_COUNT 4U /* The ADC16 sample count. */
+#define EXAMPLE_DMA    DMA0
+#define EXAMPLE_DMAMUX DMAMUX0
+
+#define BUFFER_LENGTH       8
+#define TCD_QUEUE_SIZE      2U
+#define DEMO_EDMA_CHANNEL_0 0
+
 
 /*******************************************************************************
  * Prototypes
  ******************************************************************************/
-/*!
- * @brief Initialize the EDMA.
- */
-static void EDMA_Configuration(void);
 
 /*!
  * @brief Initialize the DMAMUX.
  */
 static void DMAMUX_Configuration(void);
 
-/*!
- * @brief Initialize the ADC16.
- */
-static void ADC16_Configuration(void);
+void edma_modulo_wrap(void);
+static void EDMA_InstallTCD(DMA_Type *base, uint32_t channel, edma_tcd_t *tcd);
 
-/*!
- * @brief Process ADC values.
- */
-static void ProcessSampleData(void);
-
-/*!
- * @brief Callback function for EDMA.
- */
-static void Edma_Callback(edma_handle_t *handle, void *userData, bool transferDone, uint32_t tcds);
-
-
-static bool custom_pit_initied = false;
-static void pit0_isr(void);
-void Custom_PIT_Init(void);
 
 /*******************************************************************************
  * Variables
  ******************************************************************************/
-volatile bool g_Transfer_Done = false; /* DMA transfer completion flag. */
-uint32_t g_adc16SampleDataArray[DEMO_ADC16_SAMPLE_COUNT] = {0};
-uint32_t g_avgADCValue = 0U; /* Average ADC value .*/
-edma_handle_t g_EDMA_Handle; /* Edma handler. */
-edma_transfer_config_t g_transferConfig;
-const uint32_t g_Adc16_16bitFullRange = 65536U;
-
-uint8_t ADC_0_Selection = 0;
-uint8_t ADC_1_Selection = 0;
-#define No_ADC_0_Channels     4
-#define No_ADC_1_Channels     4
-uint32_t ADC_1_Channels[] = {0x0C, 0x0D, 0x0E, 0x0F};
-uint32_t ADC_0_Channels[] = {0x0C, 0x0D, 0x0E, 0x0F};
+edma_handle_t g_EDMA_Handle;
+volatile bool g_Transfer_Done = false;
+/* must align with the modulo range */
+uint32_t srcAddr[BUFFER_LENGTH] __attribute__((aligned(16))) = {0x01U, 0x02U, 0x03U, 0x04U, 0x05U, 0x06U, 0x07U, 0x08U};
+uint32_t destAddr[BUFFER_LENGTH] __attribute__((aligned(16))) = {0x01U, 0x02U, 0x03U, 0x04U, 0x05U, 0x06U, 0x07U, 0x08U};
+/* Allocate TCD memory poll */
+edma_tcd_t tcdMemoryPoolPtr[TCD_QUEUE_SIZE + 1] __attribute__((aligned(sizeof(edma_tcd_t))));
 
 /*******************************************************************************
  * Code
  ******************************************************************************/
+
+/* User callback function for EDMA transfer. */
+void EDMA_Callback(edma_handle_t *handle, void *param, bool transferDone, uint32_t tcds);
+
 /*!
  * @brief Main function
  */
 int main(void)
 {
 
-    adc16_channel_config_t adcChnConfig;
-
-    /* Initialize board hardware. */
-    // BOARD_InitBootPins();
-    // BOARD_InitBootClocks();
-    // BOARD_InitDebugConsole();
-
-    printf("ADC16 CONTINUOUS EDMA DEMO\r\n");
-
-    EDMA_Configuration();   /* Initialize EDMA. */
     DMAMUX_Configuration(); /* Initialize DMAMUX. */
-    ADC16_Configuration();  /* Initialize ADC16. */
-    Custom_PIT_Init();
+    edma_modulo_wrap();
 
-    /* Configure channel and SW trigger ADC16. */
-    adcChnConfig.channelNumber = DEMO_ADC16_CHANNEL;
-#if defined(FSL_FEATURE_ADC16_HAS_DIFF_MODE) && FSL_FEATURE_ADC16_HAS_DIFF_MODE
-    adcChnConfig.enableDifferentialConversion = false;
-#endif
-    adcChnConfig.enableInterruptOnConversionCompleted = false;
-    ADC16_SetChannelConfig(DEMO_ADC16_BASEADDR, DEMO_ADC16_CHANNEL_GROUP, &adcChnConfig);
-
-    buf[num-1] = '\n';
-
-    printf("ADC Full Range: %lu\r\n", g_Adc16_16bitFullRange);
-    printf("Press any key to get user channel's ADC value ...\r\n");
-
+    
     while (1)
     {
-        // GETCHAR();
-        g_Transfer_Done = false;
-        while (!g_Transfer_Done)
-        {
-        }
-        // ProcessSampleData();
-        // printf("ADC value: %lu\r\n", g_avgADCValue);
-        for(int x = 0; x < (num-1)/2 ; x++){
-            buf[(2*x) + 0] = (g_adc16SampleDataArray[x] >> 8) & 0xff;
-            buf[(2*x) + 1] = g_adc16SampleDataArray[x] & 0xff;
-            // buf[(2*x) + (2*DEMO_ADC16_SAMPLE_COUNT) + 0] = ((g_adc16SampleDataArray[x]+ (2*DEMO_ADC16_SAMPLE_COUNT)) >> 8) & 0xff;
-            // buf[(2*x) + (2*DEMO_ADC16_SAMPLE_COUNT) + 1] = (g_adc16SampleDataArray[x]+ (2*DEMO_ADC16_SAMPLE_COUNT)) & 0xff;
-        }
-        serial_port.write(buf, num);
+       
 
-        printf("The contents of DMA0_CR = %lu\n", DMA0->CR);
-        printf("The contents of DMA0_ERQ = %lu\n", DMA0->ERQ);
-        printf("The contents of DMA0_EEI = %lu\n", DMA0->EEI);
-        printf("The contents of DMA0_SERQ = %u\n", DMA0->SERQ);
-        printf("The contents of DMA0_INT = %lu\n", DMA0->INT);
-        printf("The contents of DMA0_HRS = %lu\n", DMA0->HRS);
-        printf("The contents of DMA0_TCD0_SADDR = %lu\n", DMA0->TCD[0].SADDR);
-        printf("The contents of DMA0_TCD0_SOFF = %lu\n", DMA0->TCD[0].SOFF);
-        printf("The contents of DMA0_TCD0_ATTR = %lu\n", DMA0->TCD[0].ATTR);
-        printf("The contents of DMA0_TCD0_DADDR = %lu\n", DMA0->TCD[0].DADDR);
-        printf("The contents of DMA0_TCD0_CSR = %lu\n", DMA0->TCD[0].CSR);
-        printf("The contents of DMA0_TCD0_NBYTES_MLNO = %lu\n", DMA0->TCD[0].NBYTES_MLNO);
-        printf("The contents of DMA0_TCD0_NBYTES_MLOFFNO = %lu\n", DMA0->TCD[0].NBYTES_MLOFFNO);
-        printf("The contents of DMA0_TCD0_NBYTES_MLOFFYES = %lu\n", DMA0->TCD[0].NBYTES_MLOFFYES);
-        printf("The contents of DMA0_TCD0_SLAST = %lu\n", DMA0->TCD[0].SLAST);
-        printf("The contents of DMA0_TCD0_DOFF = %lu\n", DMA0->TCD[0].DOFF);
-        printf("The contents of DMA0_TCD0_CITER_ELINKNO = %lu\n", DMA0->TCD[0].CITER_ELINKNO);
-        printf("The contents of DMA0_TCD0_CITER_ELINKYES = %lu\n", DMA0->TCD[0].CITER_ELINKYES);
-        printf("The contents of DMA0_TCD0_DLAST_SGA = %lu\n", DMA0->TCD[0].DLAST_SGA);
-        printf("The contents of DMA0_TCD0_BITER_ELINKNO = %lu\n", DMA0->TCD[0].BITER_ELINKNO);
-        printf("The contents of DMA0_TCD0_BITER_ELINKYES = %lu\n", DMA0->TCD[0].BITER_ELINKYES);
+        // printf("The contents of DMA0_CR = %lu\n", DMA0->CR);
+        // printf("The contents of DMA0_ERQ = %lu\n", DMA0->ERQ);
+        // printf("The contents of DMA0_EEI = %lu\n", DMA0->EEI);
+        // printf("The contents of DMA0_SERQ = %u\n", DMA0->SERQ);
+        // printf("The contents of DMA0_INT = %lu\n", DMA0->INT);
+        // printf("The contents of DMA0_HRS = %lu\n", DMA0->HRS);
+        // printf("The contents of DMA0_TCD0_SADDR = %lu\n", DMA0->TCD[0].SADDR);
+        // printf("The contents of DMA0_TCD0_SOFF = %lu\n", DMA0->TCD[0].SOFF);
+        // printf("The contents of DMA0_TCD0_ATTR = %lu\n", DMA0->TCD[0].ATTR);
+        // printf("The contents of DMA0_TCD0_DADDR = %lu\n", DMA0->TCD[0].DADDR);
+        // printf("The contents of DMA0_TCD0_CSR = %lu\n", DMA0->TCD[0].CSR);
+        // printf("The contents of DMA0_TCD0_NBYTES_MLNO = %lu\n", DMA0->TCD[0].NBYTES_MLNO);
+        // printf("The contents of DMA0_TCD0_NBYTES_MLOFFNO = %lu\n", DMA0->TCD[0].NBYTES_MLOFFNO);
+        // printf("The contents of DMA0_TCD0_NBYTES_MLOFFYES = %lu\n", DMA0->TCD[0].NBYTES_MLOFFYES);
+        // printf("The contents of DMA0_TCD0_SLAST = %lu\n", DMA0->TCD[0].SLAST);
+        // printf("The contents of DMA0_TCD0_DOFF = %lu\n", DMA0->TCD[0].DOFF);
+        // printf("The contents of DMA0_TCD0_CITER_ELINKNO = %lu\n", DMA0->TCD[0].CITER_ELINKNO);
+        // printf("The contents of DMA0_TCD0_CITER_ELINKYES = %lu\n", DMA0->TCD[0].CITER_ELINKYES);
+        // printf("The contents of DMA0_TCD0_DLAST_SGA = %lu\n", DMA0->TCD[0].DLAST_SGA);
+        // printf("The contents of DMA0_TCD0_BITER_ELINKNO = %lu\n", DMA0->TCD[0].BITER_ELINKNO);
+        // printf("The contents of DMA0_TCD0_BITER_ELINKYES = %lu\n", DMA0->TCD[0].BITER_ELINKYES);
     }
 }
 
 static void DMAMUX_Configuration(void)
 {
     /* Configure DMAMUX */
-    DMAMUX_Init(DEMO_DMAMUX_BASEADDR);
-    DMAMUX_SetSource(DEMO_DMAMUX_BASEADDR, DEMO_DMA_CHANNEL, DEMO_DMA_ADC_SOURCE); /* Map ADC source to channel 0 */
-    DMAMUX_EnableChannel(DEMO_DMAMUX_BASEADDR, DEMO_DMA_CHANNEL);
+    DMAMUX_Init(EXAMPLE_DMAMUX);
+    DMAMUX_SetSource(EXAMPLE_DMAMUX, DEMO_EDMA_CHANNEL_0, kDmaRequestMux0AlwaysOn63); /* Map ADC source to channel 0 */
+    DMAMUX_EnableChannel(EXAMPLE_DMAMUX, DEMO_EDMA_CHANNEL_0);
 }
 
-static void EDMA_Configuration(void)
+void edma_modulo_wrap(void)
 {
+    uint32_t i = 0;
+    edma_transfer_config_t transferConfig;
     edma_config_t userConfig;
 
-    EDMA_GetDefaultConfig(&userConfig);
-    
-    // userConfig.enableContinuousLinkMode = true;
-    
-    EDMA_Init(DEMO_DMA_BASEADDR, &userConfig);
-    EDMA_CreateHandle(&g_EDMA_Handle, DEMO_DMA_BASEADDR, DEMO_DMA_CHANNEL);
-
-    EDMA_SetCallback(&g_EDMA_Handle, Edma_Callback, NULL);
-    
-    EDMA_PrepareTransfer(&g_transferConfig, (void *)ADC16_RESULT_REG_ADDR, sizeof(uint32_t),
-                         (void *)g_adc16SampleDataArray, sizeof(uint32_t), sizeof(uint32_t),
-                         sizeof(g_adc16SampleDataArray), kEDMA_PeripheralToMemory);
-    EDMA_SubmitTransfer(&g_EDMA_Handle, &g_transferConfig);
-    /* Enable interrupt when transfer is done. */
-    EDMA_EnableChannelInterrupts(DEMO_DMA_BASEADDR, DEMO_DMA_CHANNEL, kEDMA_MajorInterruptEnable);
-
-    // Not defined for MK64F12_features.h
-#if defined(FSL_FEATURE_EDMA_ASYNCHRO_REQUEST_CHANNEL_COUNT) && FSL_FEATURE_EDMA_ASYNCHRO_REQUEST_CHANNEL_COUNT
-    /* Enable async DMA request. */
-    EDMA_EnableAsyncRequest(DEMO_DMA_BASEADDR, DEMO_DMA_CHANNEL, true);
-#endif /* FSL_FEATURE_EDMA_ASYNCHRO_REQUEST_CHANNEL_COUNT */
-    
-    // DMA0->TCD[0].CSR &= ~DMA_CSR_DREQ_MASK;
-
-
-    /* Enable transfer. */
-    EDMA_StartTransfer(&g_EDMA_Handle);
-}
-
-static void ADC16_Configuration(void)
-{
-    adc16_config_t adcUserConfig;
-
+    printf("\r\nedma modulo wrap start\r\n");
+    for (i = 0; i < BUFFER_LENGTH; i++)
+    {
+        printf("%lu\t", destAddr[i]);
+    }
+    /* Configure EDMA one shot transfer */
     /*
-     * Initialization ADC for 16bit resolution, DMA mode, normal convert speed, VREFH/L as reference,
-     * enable continuous convert mode.
+     * userConfig.enableRoundRobinArbitration = false;
+     * userConfig.enableHaltOnError = true;
+     * userConfig.enableContinuousLinkMode = false;
+     * userConfig.enableDebugMode = false;
      */
-    ADC16_GetDefaultConfig(&adcUserConfig);
-    adcUserConfig.resolution                 = kADC16_Resolution16Bit;
-    adcUserConfig.enableContinuousConversion = false;
-    adcUserConfig.clockSource                = kADC16_ClockSourceAsynchronousClock;
+    EDMA_GetDefaultConfig(&userConfig);
+    EDMA_Init(EXAMPLE_DMA, &userConfig);
+    EDMA_CreateHandle(&g_EDMA_Handle, EXAMPLE_DMA, DEMO_EDMA_CHANNEL_0);
+    EDMA_SetCallback(&g_EDMA_Handle, EDMA_Callback, NULL);
+    EDMA_ResetChannel(g_EDMA_Handle.base, g_EDMA_Handle.channel);
+    /* Configure and submit transfer structure 1 */
+    EDMA_PrepareTransfer(&transferConfig, srcAddr, sizeof(srcAddr[0]), destAddr, sizeof(destAddr[0]),
+                         sizeof(srcAddr[0]),                 /* minor loop bytes : 4 */
+                         sizeof(srcAddr[0]) * BUFFER_LENGTH, /* major loop counts : 8 */
+                         kEDMA_MemoryToMemory);
 
-    adcUserConfig.enableLowPower = false;
-// #if ((defined BOARD_ADC_USE_ALT_VREF) && BOARD_ADC_USE_ALT_VREF)
-//     adcUserConfig.referenceVoltageSource = kADC16_ReferenceVoltageSourceValt;
-// #endif
-    ADC16_Init(DEMO_ADC16_BASEADDR, &adcUserConfig);
+    EDMA_TcdSetTransferConfig(tcdMemoryPoolPtr, &transferConfig, NULL);
+    EDMA_TcdSetModulo(tcdMemoryPoolPtr, kEDMA_Modulo16bytes, kEDMA_ModuloDisable);
+    EDMA_TcdEnableInterrupts(tcdMemoryPoolPtr, kEDMA_MajorInterruptEnable);
+    EDMA_TcdEnableAutoStopRequest(tcdMemoryPoolPtr, true);
+    EDMA_InstallTCD(EXAMPLE_DMA, DEMO_EDMA_CHANNEL_0, tcdMemoryPoolPtr);
 
-#if defined(FSL_FEATURE_ADC16_HAS_CALIBRATION) && FSL_FEATURE_ADC16_HAS_CALIBRATION
-    /* Auto calibration */
-    if (kStatus_Success == ADC16_DoAutoCalibration(DEMO_ADC16_BASEADDR))
+    EDMA_EnableChannelRequest(EXAMPLE_DMA, DEMO_EDMA_CHANNEL_0);
+    /* Wait for EDMA transfer finish */
+    while (g_Transfer_Done != true)
     {
-        printf("ADC16_DoAutoCalibration() Done.\r\n");
     }
-    else
+    /* Print destination buffer */
+    printf("\r\nEDMA modulo wrap finished.\r\n");
+    while(1)
+    for (i = 0; i < BUFFER_LENGTH; i++)
     {
-        printf("ADC16_DoAutoCalibration() Failed.\r\n");
+        printf("%lu\t", destAddr[i]);
     }
-#endif
 
-    /* Enable software trigger.  */
-    ADC16_EnableHardwareTrigger(DEMO_ADC16_BASEADDR, false);
-    /* Enable DMA. */
-    ADC16_EnableDMA(DEMO_ADC16_BASEADDR, true);
+    EDMA_Deinit(EXAMPLE_DMA);
 }
 
-static void Edma_Callback(edma_handle_t *handle, void *userData, bool transferDone, uint32_t tcds)
+void EDMA_Callback(edma_handle_t *handle, void *param, bool transferDone, uint32_t tcds)
 {
-    /* Clear Edma interrupt flag. */
-    EDMA_ClearChannelStatusFlags(DEMO_DMA_BASEADDR, DEMO_DMA_CHANNEL, kEDMA_InterruptFlag);
-    
-    
-    // // Is this section really needed if eDMA config is unchanged? - seems so but not sure why - also appears to be called before 1 complete buffer transfer occurs - 
-    // /* Setup transfer */
-    EDMA_PrepareTransfer(&g_transferConfig, (void *)ADC16_RESULT_REG_ADDR, sizeof(uint32_t),
-                         (void *)g_adc16SampleDataArray, sizeof(uint32_t), sizeof(uint32_t),
-                         sizeof(g_adc16SampleDataArray), kEDMA_PeripheralToMemory);
-    EDMA_SetTransferConfig(DEMO_DMA_BASEADDR, DEMO_DMA_CHANNEL, &g_transferConfig, NULL);
-    
-    
-    /* Enable transfer. */
-    EDMA_StartTransfer(&g_EDMA_Handle);
-    g_Transfer_Done = true;
-} 
-
-static void pit0_isr(void)
-{
-    PIT_ClearStatusFlags(PIT, kPIT_Chnl_0, PIT_TFLG_TIF_MASK);
-    // PIT_StopTimer(PIT, kPIT_Chnl_0);
-
-    // Write to SC1A to start conversion with channel 0
-	// *(volatile uint32_t *)(ADC0_BASE) = 0x4C;  // Pin A0 
-
-    ADC_0_Selection = (ADC_0_Selection + 1) % No_ADC_0_Channels;
-    
-    uint32_t ADC0sc1a = ADC_0_Channels[ADC_0_Selection];
-    ADC0->SC1[0] = ADC0sc1a;
-
-    // uint32_t sc1 = ADC_SC1_ADCH(12); /* Set the channel number. */
-	// ADC0->SC1[0] = sc1 |= ADC_SC1_AIEN_MASK;  // Enable interupt on conversion complete 
-    // // Custom_K64F_ADC_Trigger_Read_Pin(PTB2);
-    
-    // DMA0->ERQ = DMA_ERQ_ERQ0_MASK;
+    if (transferDone)
+    {
+        g_Transfer_Done = true;
+    }
 }
 
-/** Initialize the high frequency ticker
- *   mbed-os\targets\TARGET_Freescale\TARGET_MCUXpresso_MCUS\TARGET_MCU_K64F\drivers\fsl_pit.c
- */
-void Custom_PIT_Init(void)
+
+
+
+
+// Should be defined in fsl_edma.c file but not working for soem reason 
+static void EDMA_InstallTCD(DMA_Type *base, uint32_t channel, edma_tcd_t *tcd)
 {
-    /* Common for ticker/timer. */
-    uint32_t busClock;
-    /* Structure to initialize PIT. */
-    pit_config_t pitConfig;
+    assert(channel < FSL_FEATURE_EDMA_MODULE_CHANNEL);
+    assert(tcd != NULL);
+    assert(((uint32_t)tcd & 0x1FU) == 0);
 
-    PIT_GetDefaultConfig(&pitConfig);
-    PIT_Init(PIT, &pitConfig);
-
-    busClock = CLOCK_GetFreq(kCLOCK_BusClk);
-
-    /* Let the timer to count if re-init. */
-    if (!custom_pit_initied) {
-
-        // PIT_SetTimerPeriod(PIT, kPIT_Chnl_0, busClock / 1 - 1);
-        // PIT_SetTimerPeriod(PIT, kPIT_Chnl_0, 0x2FAF079); // Roughly 1s 
-        PIT_SetTimerPeriod(PIT, kPIT_Chnl_0, 0x1000);
-
-        // PIT_SetTimerPeriod(PIT, kPIT_Chnl_1, 0xFFFFFFFF);
-        // PIT_SetTimerChainMode(PIT, kPIT_Chnl_1, true);
-        PIT_StartTimer(PIT, kPIT_Chnl_0);
-        // PIT_StartTimer(PIT, kPIT_Chnl_1);
-    }
-	// PIT->CHANNEL[0].TCTRL |= PIT_TCTRL_TIE_MASK | PIT_TCTRL_TEN_MASK; // Enable interrupt and enable timer
-    PIT_EnableInterrupts(PIT, kPIT_Chnl_0, kPIT_TimerInterruptEnable);
-    
-    // PIT_ClearStatusFlags(PIT, kPIT_Chnl_0, PIT_TFLG_TIF_MASK);
-    NVIC_SetVector(PIT0_IRQn, (uint32_t) pit0_isr);
-    NVIC_EnableIRQ(PIT0_IRQn);
-
-    custom_pit_initied = true;
+    /* Push tcd into hardware TCD register */
+    base->TCD[channel].SADDR = tcd->SADDR;
+    base->TCD[channel].SOFF = tcd->SOFF;
+    base->TCD[channel].ATTR = tcd->ATTR;
+    base->TCD[channel].NBYTES_MLNO = tcd->NBYTES;
+    base->TCD[channel].SLAST = tcd->SLAST;
+    base->TCD[channel].DADDR = tcd->DADDR;
+    base->TCD[channel].DOFF = tcd->DOFF;
+    base->TCD[channel].CITER_ELINKNO = tcd->CITER;
+    base->TCD[channel].DLAST_SGA = tcd->DLAST_SGA;
+    /* Clear DONE bit first, otherwise ESG cannot be set */
+    base->TCD[channel].CSR = 0;
+    base->TCD[channel].CSR = tcd->CSR;
+    base->TCD[channel].BITER_ELINKNO = tcd->BITER;
 }
