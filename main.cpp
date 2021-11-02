@@ -73,7 +73,6 @@ static void Edma_Callback(edma_handle_t *handle, void *userData, bool transferDo
 static bool custom_pit_initied = false;
 static void pit0_isr(void);
 void Custom_PIT_Init(void);
-void ADC_IRQHandler(void);
 
 /*******************************************************************************
  * Variables
@@ -245,7 +244,7 @@ static void pit0_isr(void)
 	// ADC0->SC1[0] = sc1 |= ADC_SC1_AIEN_MASK;  // Enable interupt on conversion complete 
     // // Custom_K64F_ADC_Trigger_Read_Pin(PTB2);
     
-    DMA0->ERQ = DMA_ERQ_ERQ0_MASK;
+    // DMA0->ERQ = DMA_ERQ_ERQ0_MASK;
 }
 
 /** Initialize the high frequency ticker
