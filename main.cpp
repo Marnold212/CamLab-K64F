@@ -143,6 +143,28 @@ int main(void)
             // buf[(2*x) + (2*DEMO_ADC16_SAMPLE_COUNT) + 1] = (g_adc16SampleDataArray[x]+ (2*DEMO_ADC16_SAMPLE_COUNT)) & 0xff;
         }
         serial_port.write(buf, num);
+
+        printf("The contents of DMA0_CR = %lu\n", DMA0->CR);
+        printf("The contents of DMA0_ERQ = %lu\n", DMA0->ERQ);
+        printf("The contents of DMA0_EEI = %lu\n", DMA0->EEI);
+        printf("The contents of DMA0_SERQ = %u\n", DMA0->SERQ);
+        printf("The contents of DMA0_INT = %lu\n", DMA0->INT);
+        printf("The contents of DMA0_HRS = %lu\n", DMA0->HRS);
+        printf("The contents of DMA0_TCD0_SADDR = %lu\n", DMA0->TCD[0].SADDR);
+        printf("The contents of DMA0_TCD0_SOFF = %lu\n", DMA0->TCD[0].SOFF);
+        printf("The contents of DMA0_TCD0_ATTR = %lu\n", DMA0->TCD[0].ATTR);
+        printf("The contents of DMA0_TCD0_DADDR = %lu\n", DMA0->TCD[0].DADDR);
+        printf("The contents of DMA0_TCD0_CSR = %lu\n", DMA0->TCD[0].CSR);
+        printf("The contents of DMA0_TCD0_NBYTES_MLNO = %lu\n", DMA0->TCD[0].NBYTES_MLNO);
+        printf("The contents of DMA0_TCD0_NBYTES_MLOFFNO = %lu\n", DMA0->TCD[0].NBYTES_MLOFFNO);
+        printf("The contents of DMA0_TCD0_NBYTES_MLOFFYES = %lu\n", DMA0->TCD[0].NBYTES_MLOFFYES);
+        printf("The contents of DMA0_TCD0_SLAST = %lu\n", DMA0->TCD[0].SLAST);
+        printf("The contents of DMA0_TCD0_DOFF = %lu\n", DMA0->TCD[0].DOFF);
+        printf("The contents of DMA0_TCD0_CITER_ELINKNO = %lu\n", DMA0->TCD[0].CITER_ELINKNO);
+        printf("The contents of DMA0_TCD0_CITER_ELINKYES = %lu\n", DMA0->TCD[0].CITER_ELINKYES);
+        printf("The contents of DMA0_TCD0_DLAST_SGA = %lu\n", DMA0->TCD[0].DLAST_SGA);
+        printf("The contents of DMA0_TCD0_BITER_ELINKNO = %lu\n", DMA0->TCD[0].BITER_ELINKNO);
+        printf("The contents of DMA0_TCD0_BITER_ELINKYES = %lu\n", DMA0->TCD[0].BITER_ELINKYES);
     }
 }
 
@@ -159,19 +181,30 @@ static void EDMA_Configuration(void)
     edma_config_t userConfig;
 
     EDMA_GetDefaultConfig(&userConfig);
+    
+    // userConfig.enableContinuousLinkMode = true;
+    
     EDMA_Init(DEMO_DMA_BASEADDR, &userConfig);
     EDMA_CreateHandle(&g_EDMA_Handle, DEMO_DMA_BASEADDR, DEMO_DMA_CHANNEL);
+
     EDMA_SetCallback(&g_EDMA_Handle, Edma_Callback, NULL);
+    
     EDMA_PrepareTransfer(&g_transferConfig, (void *)ADC16_RESULT_REG_ADDR, sizeof(uint32_t),
                          (void *)g_adc16SampleDataArray, sizeof(uint32_t), sizeof(uint32_t),
                          sizeof(g_adc16SampleDataArray), kEDMA_PeripheralToMemory);
     EDMA_SubmitTransfer(&g_EDMA_Handle, &g_transferConfig);
     /* Enable interrupt when transfer is done. */
     EDMA_EnableChannelInterrupts(DEMO_DMA_BASEADDR, DEMO_DMA_CHANNEL, kEDMA_MajorInterruptEnable);
+
+    // Not defined for MK64F12_features.h
 #if defined(FSL_FEATURE_EDMA_ASYNCHRO_REQUEST_CHANNEL_COUNT) && FSL_FEATURE_EDMA_ASYNCHRO_REQUEST_CHANNEL_COUNT
     /* Enable async DMA request. */
     EDMA_EnableAsyncRequest(DEMO_DMA_BASEADDR, DEMO_DMA_CHANNEL, true);
 #endif /* FSL_FEATURE_EDMA_ASYNCHRO_REQUEST_CHANNEL_COUNT */
+    
+    // DMA0->TCD[0].CSR &= ~DMA_CSR_DREQ_MASK;
+
+
     /* Enable transfer. */
     EDMA_StartTransfer(&g_EDMA_Handle);
 }
@@ -217,15 +250,20 @@ static void Edma_Callback(edma_handle_t *handle, void *userData, bool transferDo
 {
     /* Clear Edma interrupt flag. */
     EDMA_ClearChannelStatusFlags(DEMO_DMA_BASEADDR, DEMO_DMA_CHANNEL, kEDMA_InterruptFlag);
-    /* Setup transfer */
+    
+    
+    // // Is this section really needed if eDMA config is unchanged? - seems so but not sure why - also appears to be called before 1 complete buffer transfer occurs - 
+    // /* Setup transfer */
     EDMA_PrepareTransfer(&g_transferConfig, (void *)ADC16_RESULT_REG_ADDR, sizeof(uint32_t),
                          (void *)g_adc16SampleDataArray, sizeof(uint32_t), sizeof(uint32_t),
                          sizeof(g_adc16SampleDataArray), kEDMA_PeripheralToMemory);
     EDMA_SetTransferConfig(DEMO_DMA_BASEADDR, DEMO_DMA_CHANNEL, &g_transferConfig, NULL);
+    
+    
     /* Enable transfer. */
     EDMA_StartTransfer(&g_EDMA_Handle);
     g_Transfer_Done = true;
-}
+} 
 
 static void pit0_isr(void)
 {
