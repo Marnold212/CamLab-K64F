@@ -150,7 +150,6 @@ void edma_modulo_wrap(void)
     }
     /* Print destination buffer */
     printf("\r\nEDMA modulo wrap finished.\r\n");
-    while(1)
     for (i = 0; i < BUFFER_LENGTH; i++)
     {
         printf("%lu\t", destAddr[i]);
