@@ -8,6 +8,7 @@
         "array": "cpp",
         "string": "cpp",
         "string_view": "cpp",
-        "mstd_iterator": "cpp"
+        "mstd_iterator": "cpp",
+        "random": "cpp"
     }
 }

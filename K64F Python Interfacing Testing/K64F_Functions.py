@@ -16,27 +16,29 @@ def List_All_Mbed_USB_Devices():
     COM_PORTS = []
     connectionType = []  # Create a unique value for USB K64F devices which trigger new functions  
     # Say 11 = mbed USB, 10 = mbed ANY, 12 = mbed TCP, 14 = mbed WIFI 
-    ID_USB = []
+    VID_PID = []   # USB VID:PID are the Vendor/Product ID respectively - smae for each K64F Board? - You can determine from Serial Number 
+    ID_USB = []   # ID_USB will be the USB serial number - should be unique
     Baud_Rate = []  # For now assume all operating at 9600 - may change later so might need to add later on 
     # IP = []  # Don't think we need this for USB Serial(Mbed) devices 
     if Num_Serial_Devices > 0:
         for i in range(Num_Serial_Devices):
-            COM_Port = ports[i][0][0:16]   # port[i] is a particular device - port[i][0] is the COM Port of the device 
-            if(ports[i][1][0:16] == "mbed Serial Port"):     # port[i] is a particular device - port[i][1] is the description of the device - port[i][1][0:16] are the characters containing the mbed Serial Port description
+            COM_Port = ports[i].usb_description()   # ports[i].device outputs COM_PORT    (Note port[i][0][0:16]  is a particular device - port[i][0] is the COM Port of the device)
+            if(ports[i][1].startswith("mbed Serial Port")):     # port[i] is a particular device - port[i][1] is the description of the device - port[i][1][0:16] are the characters containing the mbed Serial Port description
                 default_baudrate = 9600 # Assume all boards use default baudrate of 9600 
-                
-                device = serial.Serial(port=COM_Port, baudrate=default_baudrate, bytesize=8, timeout=1, stopbits=serial.STOPBITS_ONE)
-                
-                # In requesting name, we also check we have actually connected to device - and that it is meant to be used for what we are using it for 
-                Unique_K64F_ID = "Not Yet Implemented" # Need to query device to obtain name 
-                
+                Serial_device = serial.Serial(port=COM_Port, baudrate=default_baudrate, bytesize=8, timeout=1, stopbits=serial.STOPBITS_ONE)
+                # How can we/Do we need to check we have actually connected to device - and that it is meant to be used for what we are using it for 
                 COM_PORTS.append(COM_Port)
-                connectionType.append(11)
-                ID_USB.append(Unique_K64F_ID)
+                USB_INFO = ports[i].usb_info().split('=') # USB-PID should be Unique 
+                USB_VIDPID = USB_INFO[1].split(' ')[0]
+                VID_PID.append(USB_VIDPID)
+                USB_Serial_Number = USB_INFO[2].split(' ')[0]
+                ID_USB.append(USB_Serial_Number)
+                connectionType.append(11)     # Added 10 onto definitions used by LJM library to avoid mixing up - however can change if confusing 
+                Serial_device.close()    # Close COM Port communication once info obtained 
 
-    return(Num_Mbed_Devices, COM_PORTS, connectionType, ID_USB)
+    return(Num_Mbed_Devices, COM_PORTS, connectionType, ID_USB, VID_PID)
 
 mbed_USB_info = List_All_Mbed_USB_Devices()
 
-for i in range(4):
+for i in range(5):
     print(mbed_USB_info[i])
