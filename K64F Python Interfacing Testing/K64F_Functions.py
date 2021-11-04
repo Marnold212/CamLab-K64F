@@ -8,7 +8,8 @@ import time
 
 #### How will we convey COM_PORT - very important for this serial connection 
 
-def List_All_Mbed_USB_Devices(self):
+# def List_All_Mbed_USB_Devices(self):
+def List_All_Mbed_USB_Devices():
     ports = list(port_list.comports())
     Num_Serial_Devices = len(ports)
     Num_Mbed_Devices = 0
@@ -22,9 +23,11 @@ def List_All_Mbed_USB_Devices(self):
         for i in range(Num_Serial_Devices):
             COM_Port = ports[i][0][0:16]   # port[i] is a particular device - port[i][0] is the COM Port of the device 
             if(ports[i][1][0:16] == "mbed Serial Port"):     # port[i] is a particular device - port[i][1] is the description of the device - port[i][1][0:16] are the characters containing the mbed Serial Port description
-                device = serial.Serial(COM_Port)
-                # Check we can actually connect to device - and that it is meant to be used for what we are using it for 
+                default_baudrate = 9600 # Assume all boards use default baudrate of 9600 
                 
+                device = serial.Serial(port=COM_Port, baudrate=default_baudrate, bytesize=8, timeout=1, stopbits=serial.STOPBITS_ONE)
+                
+                # In requesting name, we also check we have actually connected to device - and that it is meant to be used for what we are using it for 
                 Unique_K64F_ID = "Not Yet Implemented" # Need to query device to obtain name 
                 
                 COM_PORTS.append(COM_Port)
@@ -33,31 +36,7 @@ def List_All_Mbed_USB_Devices(self):
 
     return(Num_Mbed_Devices, COM_PORTS, connectionType, ID_USB)
 
+mbed_USB_info = List_All_Mbed_USB_Devices()
 
-    deviceInformation = {}
-                deviceInformation["connect"] = True
-                deviceInformation["name"] = device
-                deviceInformation["id"] = self.configuration["devices"][device]["id"]
-                deviceInformation["connection"] = self.configuration["devices"][device]["connection"]
-                deviceInformation["address"] = self.configuration["devices"][device]["address"]
-                deviceInformation["status"] = False
-
-                
-        # Check for USB connectons first and add to available device list if not already enabled.
-        log.info("Scanning for additional USB devices.")
-        info = ljm.listAll(7, 1)
-        devicesUSB = info[0]
-        connectionType = info[2]
-        ID_USB = info[3]
-        IP = info[4] 
-
-        LJM_ERROR_RETURN LJM_ListAll(
-                      int DeviceType, 
-                      int ConnectionType,
-                      int * NumFound, 
-                      int * aDeviceTypes, 
-                      int * aConnectionTypes,
-	              int * aSerialNumbers, 
-                      int * aIPAddresses)
-
- Filter connection type to scan. 1 for USB, 2 for TCP, 3 for Ethernet, 4 for WIFI. 0 for ANY is allowed.
+for i in range(4):
+    print(mbed_USB_info[i])
