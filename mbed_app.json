@@ -1,7 +1,6 @@
 {
     "target_overrides": {
         "*": {
-            "platform.all-stats-enabled": true
         }
     }
 }
