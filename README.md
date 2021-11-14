@@ -1,6 +1,10 @@
 # CamLab-K64F
 Code for performing data acquisition with the FRDM-K64F microcontroller
 
+## Cloning Git Repo
+
+Since mbed-os folder is linked as a submodule, in order to compile code locally, you must use the command "git clone --recursive https://github.com/Marnold212/CamLab-K64F" to also clone the mbed-os from its respective repo.  
+
 ## Flashing correct mbed Bootloader to K64F 
 
 This may be need to be done for a new board, or a board that was previously used with a different program such as NXP MCUXpresso. Also may be required if there is a memory issue which crashes the board. Follow instructions on https://daplink.io/?board=FRDM-K64F.
