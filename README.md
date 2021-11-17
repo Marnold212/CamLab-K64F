@@ -96,6 +96,13 @@ pip list
 venv/Scripts/activate 
 ```
 
+Had issues installing mercurial using venv due to lack of Microsoft Visual C++ 14.0, even though I already had Microsoft Visual C++ 14 installed on PC. To solve, install build tools for Visual Studio from https://visualstudio.microsoft.com/downloads/, go to individual components and install: 
+* Windows 10 SDK 
+* C++ CMake Tools 
+* MSVC (latest version) C++ x64/86 build tools 
+* C++/CLI suppport 
+[issues](https://github.com/CodeForBuffalo/affordable_water/issues/11)
+
 ## Debugging K64F 
 
 The K64F has an on-chip debugger that allows debugging of program. The only configuration I have successfully implemented is pyOCD using VS Code as I couldn't get OpenOCD to work on this board. Install pyOCD using pip as shown below ensuring no issues with dependencies, and check it is working by running commands "pyocd list" or "pyocd-gdbserver" in CMD with the K64F connected. 
