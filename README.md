@@ -20,7 +20,7 @@ Breif description of tools required for this project
 
 - **Git** https://git-scm.com/download/win
 - **Python 3.9** was the version I used - Can use a Virtual Environment
-  - Note that on powershell I needed to enable scripts using command "Set-ExecutionPolicy Unrestricted -Scope Process" to allow the activate script to work 
+  - Note that on powershell I needed to enable scripts (see below)
 - **mbed-CLI 1** since mbed-CLI2 doesn't seem to have the same feature set 
 - **GNU Arm Embedded Toolchain** version depends on which mbed-CLI version is used can be found on mbed-CLI documentation
   - Note that path must be specified in mbed config 
