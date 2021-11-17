@@ -56,6 +56,9 @@ Note that compiling a project for the 1st time will take a very long time due to
 # lists available commands 
 mbed 
 
+# After cloning this project, may need to create a local mbed project within folder 
+mbed new . 
+
 # set the path for the GCC Toolchain - this path depends on your installation 
 mbed config --global GCC_ARM_PATH "C:\Program Files (x86)\GNU Arm Embedded Toolchain\10 2020-q4-major\bin"
 
