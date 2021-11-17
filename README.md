@@ -32,7 +32,7 @@ On windows download .exe from https://developer.arm.com/tools-and-software/open-
 
 ## Installing mbed-CLI 1
 
-Use the package manager [pip](https://pip.pypa.io/en/stable/) to install mbed command line tools for compiling and flashing mbed device 
+Use the package manager [pip](https://pip.pypa.io/en/stable/) to install mbed command line tools for compiling and flashing mbed device. Note that special instructions required to install mercurial with a venv(virtual environment) due to Visual C++ requirement - see below. 
 
 ```bash
 pip install mbed-cli
