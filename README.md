@@ -93,6 +93,18 @@ pip install pyOCD
 ```
 We now need to configure VS Code in order to allow us to run the debugger. 
 
+## Python Virtual Environments (venv)
+
+To avoid clashes with dependencies, create a virtual environment. Activate the venv by running the activation script, exit by running "deactivate". 
+There may be issues running the activation script using powershell due to permissions, if so use the command "Set-ExecutionPolicy Unrestricted -Scope Process". 
+
+
+```bash
+pyton -m venv venv 
+pip list 
+venv/Scripts/activate 
+```
+
 ## Configuring VS-Code 
 
 Configuration for vs-code to allow for debugging of K64F as well as building of code without debugging which I use to save having to write command every time I compile code. Requires the following:
