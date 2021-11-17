@@ -84,15 +84,6 @@ mbed import mbed-os
 mbed compile -t <toolchain> -m <target> -f --sterm 
 ```
 
-## Debugging K64F 
-
-The K64F has an on-chip debugger that allows debugging of program. The only configuration I have successfully implemented is pyOCD using VS Code as I couldn't get OpenOCD to work on this board. Install pyOCD using pip as shown below ensuring no issues with dependencies, and check it is working by running commands "pyocd list" or "pyocd-gdbserver" in CMD with the K64F connected. 
-
-```bash
-pip install pyOCD 
-```
-We now need to configure VS Code in order to allow us to run the debugger. 
-
 ## Python Virtual Environments (venv)
 
 To avoid clashes with dependencies, create a virtual environment. Activate the venv by running the activation script, exit by running "deactivate". 
@@ -118,3 +109,12 @@ Configuration for vs-code to allow for debugging of K64F as well as building of 
 
 There a few different methods for adding a .vscode/ folder to a project. The easiest would be to modify the one in this reopository for particular computer, another option in vs code is to attempt "Run and Debug" without one it should create a template. Also you could use the mbed command "mbed export -i vscode_gcc_arm -m K64F --profile mbed-os/tools/profiles/debug.json". 
 
+
+## Debugging K64F 
+
+The K64F has an on-chip debugger that allows debugging of program. The only configuration I have successfully implemented is pyOCD using VS Code as I couldn't get OpenOCD to work on this board. Install pyOCD using pip as shown below ensuring no issues with dependencies, and check it is working by running commands "pyocd list" or "pyocd-gdbserver" in CMD with the K64F connected. 
+
+```bash
+pip install pyOCD 
+```
+We now need to configure VS Code in order to allow us to run the debugger. 
