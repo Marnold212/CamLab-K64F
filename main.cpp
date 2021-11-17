@@ -8,7 +8,14 @@ static BufferedSerial serial_port(USBTX, USBRX);
 // Application buffer to receive the data
 char buf[MAXIMUM_BUFFER_SIZE] = "{0}";
 
+char test_buf[4] = {"0"};
+uint32_t test_val = 0x12345;
+
 int main(){
+    *(uint32_t *)(test_buf) = __REV(test_val);
+    for(int x = 0; x < 4; x++){    
+        printf("[%i] = %x ; ", x, test_buf[x]);
+    }
     DigitalOut led(LED1);
     // Set desired properties (9600-8-N-1).
     serial_port.set_baud(9600);
