@@ -1,5 +1,5 @@
 # CamLab-K64F
-Code for performing data acquisition with the FRDM-K64F microcontroller
+Code for performing data acquisition with the FRDM-K64F microcontroller. Currently tested using Windows 10 and VS Code. 
 
 ## Cloning Git Repo
 
