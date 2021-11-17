@@ -96,12 +96,12 @@ pip list
 venv/Scripts/activate 
 ```
 
-Had issues installing mercurial using venv due to lack of Microsoft Visual C++ 14.0, even though I already had Microsoft Visual C++ 14 installed on PC. To solve, install build tools for Visual Studio from https://visualstudio.microsoft.com/downloads/, go to individual components and install: 
+Had [issues](https://github.com/CodeForBuffalo/affordable_water/issues/11) installing mercurial using venv due to lack of Microsoft Visual C++ 14.0, even though I already had Microsoft Visual C++ 14 installed on PC. To solve, install build tools for Visual Studio from https://visualstudio.microsoft.com/downloads/, go to individual components and install: 
 * Windows 10 SDK 
 * C++ CMake Tools 
 * MSVC (latest version) C++ x64/86 build tools 
 * C++/CLI suppport 
-[issues](https://github.com/CodeForBuffalo/affordable_water/issues/11)
+
 
 ## Debugging K64F 
 
