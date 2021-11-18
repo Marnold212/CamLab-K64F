@@ -1,5 +1,5 @@
 # CamLab-K64F
-Code for performing data acquisition with the FRDM-K64F microcontroller
+Code for performing data acquisition with the FRDM-K64F microcontroller. Currently tested using Windows 10 and VS Code. 
 
 ## Cloning Git Repo
 
@@ -20,7 +20,7 @@ Breif description of tools required for this project
 
 - **Git** https://git-scm.com/download/win
 - **Python 3.9** was the version I used - Can use a Virtual Environment
-  - Note that on powershell I needed to enable scripts using command "Set-ExecutionPolicy Unrestricted -Scope Process" to allow the activate script to work 
+  - Note that on powershell I needed to enable scripts (see below)
 - **mbed-CLI 1** since mbed-CLI2 doesn't seem to have the same feature set 
 - **GNU Arm Embedded Toolchain** version depends on which mbed-CLI version is used can be found on mbed-CLI documentation
   - Note that path must be specified in mbed config 
@@ -32,7 +32,7 @@ On windows download .exe from https://developer.arm.com/tools-and-software/open-
 
 ## Installing mbed-CLI 1
 
-Use the package manager [pip](https://pip.pypa.io/en/stable/) to install mbed command line tools for compiling and flashing mbed device 
+Use the package manager [pip](https://pip.pypa.io/en/stable/) to install mbed command line tools for compiling and flashing mbed device. Note that special instructions required to install mercurial with a venv(virtual environment) due to Visual C++ requirement - see below. 
 
 ```bash
 pip install mbed-cli
@@ -55,6 +55,9 @@ Note that compiling a project for the 1st time will take a very long time due to
 ```python
 # lists available commands 
 mbed 
+
+# After cloning this project, may need to create a local mbed project within folder 
+mbed new . 
 
 # set the path for the GCC Toolchain - this path depends on your installation 
 mbed config --global GCC_ARM_PATH "C:\Program Files (x86)\GNU Arm Embedded Toolchain\10 2020-q4-major\bin"
@@ -84,6 +87,25 @@ mbed import mbed-os
 mbed compile -t <toolchain> -m <target> -f --sterm 
 ```
 
+## Python Virtual Environments (venv)
+
+To avoid clashes with dependencies, create a virtual environment. Activate the venv by running the activation script, exit by running "deactivate". 
+There may be issues running the activation script using powershell due to permissions, if so use the command "Set-ExecutionPolicy Unrestricted -Scope Process". 
+
+
+```bash
+pyton -m venv venv 
+pip list 
+venv/Scripts/activate 
+```
+
+Had [issues](https://github.com/CodeForBuffalo/affordable_water/issues/11) installing mercurial using venv due to lack of Microsoft Visual C++ 14.0, even though I already had Microsoft Visual C++ 14 installed on PC. To solve, install build tools for Visual Studio from https://visualstudio.microsoft.com/downloads/, go to individual components and install: 
+* Windows 10 SDK 
+* C++ CMake Tools 
+* MSVC (latest version) C++ x64/86 build tools 
+* C++/CLI suppport 
+
+
 ## Debugging K64F 
 
 The K64F has an on-chip debugger that allows debugging of program. The only configuration I have successfully implemented is pyOCD using VS Code as I couldn't get OpenOCD to work on this board. Install pyOCD using pip as shown below ensuring no issues with dependencies, and check it is working by running commands "pyocd list" or "pyocd-gdbserver" in CMD with the K64F connected. 
@@ -92,6 +114,7 @@ The K64F has an on-chip debugger that allows debugging of program. The only conf
 pip install pyOCD 
 ```
 We now need to configure VS Code in order to allow us to run the debugger. 
+
 
 ## Configuring VS-Code 
 
