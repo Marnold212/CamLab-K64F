@@ -49,7 +49,7 @@ int main(){
         }
         
         if(num > 1){
-
+            /*
             for(int x = 0; x < 4; x++){
                 address_arr[x] = buf[x];
             }
@@ -60,6 +60,14 @@ int main(){
             *(uint32_t *)(buf) = *(uint32_t *)reg_data;
 
             // *(uint32_t *)(buf) = *(uint32_t *)*(uint32_t *)(address_arr);
+            */
+
+           // uint32_t Address = __REV(*(uint32_t *)(buf))
+           // uint32_t val = *(uint32_t *)(Address) 
+           // *(uint32_t *)(buf) = __REV(val)
+
+            *(uint32_t *)(buf) = __REV(*(uint32_t *)__REV(*(uint32_t *)(buf)))
+
 
             buf[num-1] = '\n';
             buf[num-2] = num_in;
