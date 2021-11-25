@@ -35,6 +35,7 @@ def List_All_Mbed_USB_Devices():
                 # How can we/Do we need to check we have actually connected to device - and that it is meant to be used for what we are using it for 
                 if(not Serial_device.readable()):
                     raise Exception ("Issues connecting with mbed Device on %s", COM_Port) # Need to implement proper error handling 
+                Num_Mbed_Devices += 1
                 COM_PORTS.append(COM_Port)
                 USB_INFO = ports[i].usb_info().split('=') # USB-PID should be Unique 
                 USB_VIDPID = USB_INFO[1].split(' ')[0]
@@ -56,18 +57,20 @@ def Read_K64F_Hex_Register(serialPort, Address, Expected_Bytes = 4):   # Only us
         raise Exception ("Register Address should be 4 bytes/8 hex digits long and be in format 0x00000000")
 
     Address = bytes.fromhex(Address[2:]) # Assumes Address is input in format "0x12345678"
-    print(b'%b\n' % Address)
+    Read32_Command = bytes.fromhex("30")
+    print(b'%b%b\n' % (Read32_Command, Address))
     # with serialPort as s:   # with as should allow for some error handling?
     #     print(b'%b\n' % Address)
     #     num1 = s.write(b'%b\n' % Address)   # num1 is number of bytes sent 
 
     try:
-        num1 = serialPort.write(b'%b\n' % Address)   # num1 is number of bytes sent 
+        num1 = serialPort.write(b'%b%b\n' % (Read32_Command, Address))   # num1 is number of bytes sent 
     except:
         raise Exception ("Error writing to mbed Serial Device")
 
     Expected_Bytes = Expected_Bytes + 1 # Note that this includes the EOL character which the user should ignore 
     serialString = "" # Used to hold data coming over UART
+    # NEED TO ADD A TIMEOUT TO FOLLOWING LINE
     while(1):
         if serialPort.in_waiting > 0:
             # Read data out of the buffer until a carriage return / new line is found
@@ -95,8 +98,8 @@ def Read_K64F_Hex_Register(serialPort, Address, Expected_Bytes = 4):   # Only us
 
 Serial_device = serial.Serial(port="COM4", baudrate=9600, bytesize=8, timeout=1, stopbits=serial.STOPBITS_ONE)
 Target_Register = "0x40048024"
-Received_String = Read_K64F_Hex_Register(Serial_device, Target_Register, 5)
-print("No Bytes Sent by Python = %i; Requested Register = %s; Contents of Register(Hex) = %s; N0 Bytes Received By K64F = %i; No Bytes Received By Python = %i" % (5, Target_Register , Received_String[:-4], int(Received_String[-4:-2], 16), len(Received_String)/2.0))
+Received_String = Read_K64F_Hex_Register(Serial_device, Target_Register, 4)
+print("READ COMMAND (0x30): Requested Register = %s; Contents of Register(Hex) = %s" % (Target_Register , Received_String[:-2]))
 
 '''
 # Functionality to go into findDevices():
