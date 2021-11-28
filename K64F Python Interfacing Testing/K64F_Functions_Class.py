@@ -77,6 +77,13 @@ class Serial_K64F:
     Read_8_Reg_Instruction = "0x32" 
     Expected_Bytes_Read_8_Reg = 2 # 1 byte + '/n'
 
+    Write_32_Reg_Instruction = "0x33" 
+    Expected_Bytes_Write_32_Reg = 5 # 4 bytes + '/n'
+    Write_16_Reg_Instruction = "0x34" 
+    Expected_Bytes_Write_16_Reg = 3 # 2 bytes + '/n'
+    Wrte_8_Reg_Instruction = "0x35" 
+    Expected_Bytes_Write_8_Reg = 2 # 1 byte + '/n'
+
     def Hex_To_Dec(input):  # input of form "40048024"
         return int(input, 16)
     
@@ -92,13 +99,47 @@ class Serial_K64F:
             raise Exception ("No connected mbed Device")
         if(len(Target_Address) != 10 or not Target_Address.startswith("0x")):
             raise Exception ("Register Address should be 4 bytes/8 hex digits long and be in format 0x00000000")
-        if(len(Hex_Value) > (2*4 + 2) or not Hex_Value.startswith("0x")):
+        if(len(Hex_Value) > (4*2 + 2) or not Hex_Value.startswith("0x")):
             raise Exception ("Trying to Write an Invalid value to mbed Register")
         Target_Address = Target_Address[2:] # Remove "0x"
         Hex_Value = Hex_Value[2:] # Remove "0x"
-        Reg_Contents = self._Serial_Write(self.Serial_Device, self.Read_32_Reg_Instruction, Target_Address, Hex_Value, self.Expected_Bytes_Read_32_Reg)
-        if(len(Reg_Contents) != 2*(self.Expected_Bytes_Read_32_Reg - 1)): # Expect 32 bits returned 
-            raise Exception ("0x30 Issue with Returned Data")
+        Reg_Contents = self._Serial_Write(self.Serial_Device, self.Write_32_Reg_Instruction, Target_Address, Hex_Value, self.Expected_Bytes_Write_32_Reg)
+        if(len(Reg_Contents) != 2*(self.Expected_Bytes_Write_32_Reg - 1)): # Expect 32 bits returned 
+            raise Exception ("0x33 Issue with Returned Data")
+        if(Reg_Contents != Hex_Value): # We expect to recieve the same value we wrote to an address on the mbed
+            raise Exception ("0x33 Issue with Returned Data")
+        return Reg_Contents  # Hex Form 
+
+    def Write_16_Reg(self, Target_Address, Hex_Value):
+        if not self.IsConnected:
+            raise Exception ("No connected mbed Device")
+        if(len(Target_Address) != 10 or not Target_Address.startswith("0x")):
+            raise Exception ("Register Address should be 4 bytes/8 hex digits long and be in format 0x00000000")
+        if(len(Hex_Value) > (2*2 + 2) or not Hex_Value.startswith("0x")):
+            raise Exception ("Trying to Write an Invalid value to mbed Register")
+        Target_Address = Target_Address[2:] # Remove "0x"
+        Hex_Value = Hex_Value[2:] # Remove "0x"
+        Reg_Contents = self._Serial_Write(self.Serial_Device, self.Write_16_Reg_Instruction, Target_Address, Hex_Value, self.Expected_Bytes_Write_16_Reg)
+        if(len(Reg_Contents) != 2*(self.Expected_Bytes_Write_16_Reg - 1)): # Expect 32 bits returned (subtract the EOL byte)
+            raise Exception ("0x34 Issue with Returned Data")
+        if(Reg_Contents != Hex_Value):
+            raise Exception ("0x34 Issue with Returned Data")
+        return Reg_Contents  # Hex Form 
+
+    def Write_8_Reg(self, Target_Address, Hex_Value):
+        if not self.IsConnected:
+            raise Exception ("No connected mbed Device")
+        if(len(Target_Address) != 10 or not Target_Address.startswith("0x")):
+            raise Exception ("Register Address should be 4 bytes/8 hex digits long and be in format 0x00000000")
+        if(len(Hex_Value) > (1*2 + 2) or not Hex_Value.startswith("0x")):
+            raise Exception ("Trying to Write an Invalid value to mbed Register")
+        Target_Address = Target_Address[2:] # Remove "0x"
+        Hex_Value = Hex_Value[2:] # Remove "0x"
+        Reg_Contents = self._Serial_Write(self.Serial_Device, self.Write_8_Reg_Instruction, Target_Address, Hex_Value, self.Expected_Bytes_Write_8_Reg)
+        if(len(Reg_Contents) != 2*(self.Expected_Bytes_Write_8_Reg - 1)): # Expect 32 bits returned (subtract the EOL byte)
+            raise Exception ("0x35 Issue with Returned Data")
+        if(Reg_Contents != Hex_Value):
+            raise Exception ("0x35 Issue with Returned Data")
         return Reg_Contents  # Hex Form 
 
     # Uses private function - returns data contained in Register in hex form 
@@ -151,7 +192,7 @@ class Serial_K64F:
 
         byte_Command = serialPort.write(b'%b%b%b\n' % (bytes.fromhex(Instruction), bytes.fromhex(Target_Address), bytes.fromhex(Hex_Value)))
         return self._Serial_Command_Response(serialPort, byte_Command, Expected_Bytes)
-
+    
     def _Serial_Command_Response(serialPort, byte_Command, Expected_Bytes):
         try:
             num1 = serialPort.write(byte_Command)   # num1 is number of bytes sent 
