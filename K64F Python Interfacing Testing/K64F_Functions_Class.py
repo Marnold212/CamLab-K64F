@@ -86,10 +86,22 @@ class Serial_K64F:
     def Hex_To_Bytes(input): # input of form "40048024"
         return bytes.fromhex(input)
 
+    # Uses private function - returns data written to Register in hex form 
+    def Write_32_Reg(self, Target_Address, Hex_Value):
+        if not self.IsConnected:
+            raise Exception ("No connected mbed Device")
+        if(len(Target_Address) != 10 or not Target_Address.startswith("0x")):
+            raise Exception ("Register Address should be 4 bytes/8 hex digits long and be in format 0x00000000")
+        if(len(Hex_Value) > (2*4 + 2) or not Hex_Value.startswith("0x")):
+            raise Exception ("Trying to Write an Invalid value to mbed Register")
+        Target_Address = Target_Address[2:] # Remove "0x"
+        Hex_Value = Hex_Value[2:] # Remove "0x"
+        Reg_Contents = self._Serial_Write(self.Serial_Device, self.Read_32_Reg_Instruction, Target_Address, Hex_Value, self.Expected_Bytes_Read_32_Reg)
+        if(len(Reg_Contents) != 2*(self.Expected_Bytes_Read_32_Reg - 1)): # Expect 32 bits returned 
+            raise Exception ("0x30 Issue with Returned Data")
+        return Reg_Contents  # Hex Form 
 
-    
-
-    # Uses private function - returns data in hex form 
+    # Uses private function - returns data contained in Register in hex form 
     def Read_32_Reg(self, Target_Address): # Target_Address in form of "0x40048024"
         if not self.IsConnected:
             raise Exception ("No connected mbed Device")
