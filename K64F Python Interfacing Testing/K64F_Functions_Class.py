@@ -83,6 +83,12 @@ class Serial_K64F:
     def Hex_To_Bin(input): # input of form "40048024"
         return bin(int(input, 16))
 
+    def Hex_To_Bytes(input): # input of form "40048024"
+        return bytes.fromhex(input)
+
+
+    
+
     # Uses private function - returns data in hex form 
     def Read_32_Reg(self, Target_Address): # Target_Address in form of "0x40048024"
         if not self.IsConnected:
@@ -117,19 +123,28 @@ class Serial_K64F:
             raise Exception ("0x32 Issue with Returned Data")
         return Reg_Contents  # Hex Form
 
-    def _Serial_Read(serialPort, Instruction, Target_Address, Expected_Bytes):
+    def _Serial_Read(self, serialPort, Instruction, Target_Address, Expected_Bytes):
         # Assume arguments are valid for given instruction - check in public method
         # Assume Target Address & Instructions are in form "40048024", "30" - no "0x" prefix
         # Expected_Bytes inludes the '\n' we expect at end of communication
+        
+        byte_Command = (b'%b%b\n' % (bytes.fromhex(Instruction), bytes.fromhex(Target_Address)))   # num1 is number of bytes sent 
+        return self._Serial_Command_Response(serialPort, byte_Command, Expected_Bytes)
 
-        Address = bytes.fromhex(Target_Address)
-        Read32_Command = bytes.fromhex(Instruction)
+    def _Serial_Write(self, serialPort, Instruction, Target_Address, Hex_Value, Expected_Bytes):
+        # Assume arguments are valid for given instruction - check in public method
+        # Assume Target Address, Hex_value & Instructions are in form "40048024", "30" - no "0x" prefix
+        # Expected_Bytes inludes the '\n' we expect at end of communication
+        # Writes the Hex_Value to the Targeted_Address 
 
+        byte_Command = serialPort.write(b'%b%b%b\n' % (bytes.fromhex(Instruction), bytes.fromhex(Target_Address), bytes.fromhex(Hex_Value)))
+        return self._Serial_Command_Response(serialPort, byte_Command, Expected_Bytes)
+
+    def _Serial_Command_Response(serialPort, byte_Command, Expected_Bytes):
         try:
-            num1 = serialPort.write(b'%b%b\n' % (bytes.fromhex(Instruction), bytes.fromhex(Target_Address)))   # num1 is number of bytes sent 
+            num1 = serialPort.write(byte_Command)   # num1 is number of bytes sent 
         except:
             raise Exception ("Error writing to mbed Serial Device")
-
         serialString = "" # Used to hold data coming over UART
         # NEED TO ADD A TIMEOUT TO FOLLOWING LINE
 
