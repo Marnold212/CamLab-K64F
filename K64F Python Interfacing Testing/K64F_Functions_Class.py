@@ -54,8 +54,18 @@ for i in range(5):
 
 
 class Serial_K64F:
-    Available_Devices = []
-    Connected_Device = [] # [0] = COM_PORT
+    Num_Serial_Devices = 0
+    COM_PORTS = []
+    connectionType = []  # Create a unique value for USB K64F devices which trigger new functions  
+    # Say 11 = mbed USB, 10 = mbed ANY, 12 = mbed TCP, 14 = mbed WIFI 
+    VID_PID = []   # USB VID:PID are the Vendor/Product ID respectively - smae for each K64F Board? - You can determine HIC ID from last 8 digits of Serial Number? 
+    # Note that the 0240 at the start of Serial Number refers to the K64F Family 
+    ID_USB = []   # ID_USB will be the USB serial number - should be unique
+    Baud_Rate = []  # For now assume all operating at 9600 - may change later so might need to add later on 
+    # IP = []  # Don't think we need this for USB Serial(Mbed) devices 
+
+    Connected_Device_Info = [] # [0] = COM_PORT
+    Serial_Device = None
 
     Read_32_Reg_Instruction = "0x30" 
     Expected_Bytes_Read_32_Reg = 5 # 4 bytes + '/n'
@@ -64,17 +74,17 @@ class Serial_K64F:
         return int(input, 16)
     
     def Hex_To_Bin(input): # input of form "40048024"
-        return ("%b" % input)
+        return bin(int(input, 16))
 
     def Read_32_Reg(self, Target_Address): # Target_Address in form of "0x40048024"
         if(len(Target_Address) != 10 or not Target_Address.startswith("0x")):
             raise Exception ("Register Address should be 4 bytes/8 hex digits long and be in format 0x00000000")
         Target_Address = Target_Address[2:]
         Reg_Contents = self._Serial_Read(self.Connected_Device[0], self.Read_32_Reg_Instruction, Target_Address, self.Expected_Bytes_Read_32_Reg)
-        if(len(Reg_Contents) != 2*(self.Expected_Bytes_Read_32_Reg - 1)):
+        if(len(Reg_Contents) != 2*(self.Expected_Bytes_Read_32_Reg - 1)): # Expect 32 bits returned 
             raise Exception ("0x30 Issue with Returned Data")
 
-        return int(Reg_Contents, 16) 
+        return self.Hex_To_Dec(Reg_Contents)
 
     def _Serial_Read(serialPort, Instruction, Target_Address, Expected_Bytes):
         # Assume arguments are valid for given instruction - check in public method
@@ -108,13 +118,36 @@ class Serial_K64F:
                 else:
                     return serialString[:-2]
 
-
+    def List_All_Mbed_USB_Devices(self):
+        ports = list(port_list.comports())
+        self.Num_Serial_Devices = len(ports)
+        if self.Num_Serial_Devices > 0:
+            for i in range(self.Num_Serial_Devices):
+                COM_Port = ports[i].usb_description()   # ports[i].device outputs COM_PORT    (Note port[i][0][0:16]  is a particular device - port[i][0] is the COM Port of the device)
+                if(ports[i][1].startswith("mbed Serial Port")):     # port[i] is a particular device - port[i][1] is the description of the device - port[i][1][0:16] are the characters containing the mbed Serial Port description
+                    default_baudrate = 9600 # Assume all boards use default baudrate of 9600 
+                    try:
+                        Serial_device = serial.Serial(port=COM_Port, baudrate=default_baudrate, bytesize=8, timeout=1, stopbits=serial.STOPBITS_ONE)
+                    except:
+                        raise Exception ("Issues connecting with mbed Device on %s", COM_Port) # Need to implement proper error handling 
+                    # How can we/Do we need to check we have actually connected to device - and that it is meant to be used for what we are using it for 
+                    if(not Serial_device.readable()):
+                        raise Exception ("Issues connecting with mbed Device on %s", COM_Port) # Need to implement proper error handling 
+                    self.Num_Mbed_Devices += 1
+                    self.COM_PORTS.append(COM_Port)
+                    USB_INFO = ports[i].usb_info().split('=') # USB-PID should be Unique 
+                    USB_VIDPID = USB_INFO[1].split(' ')[0]
+                    self.VID_PID.append(USB_VIDPID)
+                    USB_Serial_Number = USB_INFO[2].split(' ')[0]
+                    self.ID_USB.append(USB_Serial_Number)
+                    self.connectionType.append(11)     # Added 10 onto definitions used by LJM library to avoid mixing up - however can change if confusing 
+                    Serial_device.close()    # Close COM Port communication once info obtained 
 
 
 # Testing 
-
+'''
 Serial_device = serial.Serial(port="COM4", baudrate=9600, bytesize=8, timeout=1, stopbits=serial.STOPBITS_ONE)
 Target_Register = "0x40048024"
 Received_String = Read_K64F_Hex_Register(Serial_device, Target_Register, 4)
 print("READ COMMAND (0x30): Requested Register = %s; Contents of Register(Hex) = %s" % (Target_Register , Received_String[:-2]))
-
+'''
