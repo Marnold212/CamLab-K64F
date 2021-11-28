@@ -1,4 +1,5 @@
 from ctypes.wintypes import HANDLE
+from serial.serialutil import SerialException
 import serial.tools.list_ports as port_list
 import serial
 import time
@@ -69,6 +70,51 @@ class Serial_K64F:
     Serial_Device = None # Open Serial Port of the Connected Device
     IsConnected = False  
 
+    def List_All_Mbed_USB_Devices(self):
+        ports = list(port_list.comports())
+        self.Num_Serial_Devices = len(ports)
+        if self.Num_Serial_Devices > 0:
+            for i in range(self.Num_Serial_Devices):
+                COM_Port = ports[i].usb_description()   # ports[i].device outputs COM_PORT    (Note port[i][0][0:16]  is a particular device - port[i][0] is the COM Port of the device)
+                if(ports[i][1].startswith("mbed Serial Port")):     # port[i] is a particular device - port[i][1] is the description of the device - port[i][1][0:16] are the characters containing the mbed Serial Port description
+                    default_baudrate = 9600 # Assume all boards use default baudrate of 9600 
+                    try:
+                        Serial_device = serial.Serial(port=COM_Port, baudrate=default_baudrate, bytesize=8, timeout=1, stopbits=serial.STOPBITS_ONE)
+                    except:
+                        raise Exception ("Issues connecting with mbed Device on %s", COM_Port) # Need to implement proper error handling 
+                    # How can we/Do we need to check we have actually connected to device - and that it is meant to be used for what we are using it for 
+                    if(not Serial_device.readable()):
+                        raise Exception ("Issues connecting with mbed Device on %s", COM_Port) # Need to implement proper error handling 
+                    self.Num_Mbed_Devices += 1
+                    self.COM_PORTS.append(COM_Port)
+                    USB_INFO = ports[i].usb_info().split('=') # USB-PID should be Unique 
+                    USB_VIDPID = USB_INFO[1].split(' ')[0]
+                    self.VID_PID.append(USB_VIDPID)
+                    USB_Serial_Number = USB_INFO[2].split(' ')[0]
+                    self.ID_USB.append(USB_Serial_Number)
+                    self.connectionType.append(11)     # Added 10 onto definitions used by LJM library to avoid mixing up - however can change if confusing 
+                    Serial_device.close()    # Close COM Port communication once info obtained
+    
+    def Connect_To_USB_Device(self, Device_Index, Serial_baudrate = 9600):
+        if(self.IsConnected):
+            print("Already Connected to a Device")
+            return
+        try:
+            self.Serial_device = serial.Serial(port=self.COM_PORTS[Device_Index], baudrate=Serial_baudrate, bytesize=8, timeout=1, stopbits=serial.STOPBITS_ONE)
+            self.Connected_Device_Index = Device_Index
+            self.IsConnected = True
+        except ValueError:
+            print("Invalid parameters")
+        except SerialException:
+            print("Could not connect to Device")
+        except: 
+            raise Exception ("Unknown Error Connecting to Device")
+
+    def Disconnect_Usb_Device(self):
+        self.Serial_device.close()
+        self.IsConnected = False
+        self.Connected_Device_Index = None
+    
     # Instructions + Expected Number of Bytes Returned 
     Read_32_Reg_Instruction = "0x30" 
     Expected_Bytes_Read_32_Reg = 5 # 4 bytes + '/n'
@@ -92,6 +138,7 @@ class Serial_K64F:
 
     def Hex_To_Bytes(input): # input of form "40048024"
         return bytes.fromhex(input)
+
 
     # Uses private function - returns data written to Register in hex form 
     def Write_32_Reg(self, Target_Address, Hex_Value):
@@ -192,7 +239,7 @@ class Serial_K64F:
 
         byte_Command = serialPort.write(b'%b%b%b\n' % (bytes.fromhex(Instruction), bytes.fromhex(Target_Address), bytes.fromhex(Hex_Value)))
         return self._Serial_Command_Response(serialPort, byte_Command, Expected_Bytes)
-    
+
     def _Serial_Command_Response(serialPort, byte_Command, Expected_Bytes):
         try:
             num1 = serialPort.write(byte_Command)   # num1 is number of bytes sent 
@@ -217,30 +264,7 @@ class Serial_K64F:
                 else:
                     return serialString[:-2]
 
-    def List_All_Mbed_USB_Devices(self):
-        ports = list(port_list.comports())
-        self.Num_Serial_Devices = len(ports)
-        if self.Num_Serial_Devices > 0:
-            for i in range(self.Num_Serial_Devices):
-                COM_Port = ports[i].usb_description()   # ports[i].device outputs COM_PORT    (Note port[i][0][0:16]  is a particular device - port[i][0] is the COM Port of the device)
-                if(ports[i][1].startswith("mbed Serial Port")):     # port[i] is a particular device - port[i][1] is the description of the device - port[i][1][0:16] are the characters containing the mbed Serial Port description
-                    default_baudrate = 9600 # Assume all boards use default baudrate of 9600 
-                    try:
-                        Serial_device = serial.Serial(port=COM_Port, baudrate=default_baudrate, bytesize=8, timeout=1, stopbits=serial.STOPBITS_ONE)
-                    except:
-                        raise Exception ("Issues connecting with mbed Device on %s", COM_Port) # Need to implement proper error handling 
-                    # How can we/Do we need to check we have actually connected to device - and that it is meant to be used for what we are using it for 
-                    if(not Serial_device.readable()):
-                        raise Exception ("Issues connecting with mbed Device on %s", COM_Port) # Need to implement proper error handling 
-                    self.Num_Mbed_Devices += 1
-                    self.COM_PORTS.append(COM_Port)
-                    USB_INFO = ports[i].usb_info().split('=') # USB-PID should be Unique 
-                    USB_VIDPID = USB_INFO[1].split(' ')[0]
-                    self.VID_PID.append(USB_VIDPID)
-                    USB_Serial_Number = USB_INFO[2].split(' ')[0]
-                    self.ID_USB.append(USB_Serial_Number)
-                    self.connectionType.append(11)     # Added 10 onto definitions used by LJM library to avoid mixing up - however can change if confusing 
-                    Serial_device.close()    # Close COM Port communication once info obtained 
+     
 
 
 # Testing 

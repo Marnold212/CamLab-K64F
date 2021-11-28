@@ -44,8 +44,7 @@ void Serial_Response(void){
                 if(num_in == 6){ // 1 Command byte (030), 4 address bytes (8 Hex Digits), 1 End of Line ("\n")
                     Serial_Read_Register();
                 }
-                
-            }    
+            }  
         }
 
     }
@@ -78,3 +77,6 @@ void Serial_Mirror_Request(uint32_t num_bytes){ // Need to know the number of by
     // For testing purposes, return the command sent over serial in same order it was received 
     serial_port.write(buf, num_bytes);
 }
+
+
+
