@@ -66,11 +66,16 @@ class Serial_K64F:
 
     # Assume each instance of this class has no more than 1 conected devices 
     Connected_Device_Index = None # Store the index of the connected device, to gather info from above lists 
-    Serial_Device = None # Open Serial Port of the Connected Device 
+    Serial_Device = None # Open Serial Port of the Connected Device
+    IsConnected = False  
 
     # Instructions + Expected Number of Bytes Returned 
     Read_32_Reg_Instruction = "0x30" 
     Expected_Bytes_Read_32_Reg = 5 # 4 bytes + '/n'
+    Read_16_Reg_Instruction = "0x31" 
+    Expected_Bytes_Read_16_Reg = 3 # 2 bytes + '/n'
+    Read_8_Reg_Instruction = "0x32" 
+    Expected_Bytes_Read_8_Reg = 2 # 1 byte + '/n'
 
     def Hex_To_Dec(input):  # input of form "40048024"
         return int(input, 16)
@@ -78,15 +83,39 @@ class Serial_K64F:
     def Hex_To_Bin(input): # input of form "40048024"
         return bin(int(input, 16))
 
+    # Uses private function - returns data in hex form 
     def Read_32_Reg(self, Target_Address): # Target_Address in form of "0x40048024"
+        if not self.IsConnected:
+            raise Exception ("No connected mbed Device")
         if(len(Target_Address) != 10 or not Target_Address.startswith("0x")):
             raise Exception ("Register Address should be 4 bytes/8 hex digits long and be in format 0x00000000")
         Target_Address = Target_Address[2:]
-        Reg_Contents = self._Serial_Read(self.Connected_Device[0], self.Read_32_Reg_Instruction, Target_Address, self.Expected_Bytes_Read_32_Reg)
+        Reg_Contents = self._Serial_Read(self.Serial_Device, self.Read_32_Reg_Instruction, Target_Address, self.Expected_Bytes_Read_32_Reg)
         if(len(Reg_Contents) != 2*(self.Expected_Bytes_Read_32_Reg - 1)): # Expect 32 bits returned 
             raise Exception ("0x30 Issue with Returned Data")
+        return Reg_Contents  # Hex Form 
 
-        return self.Hex_To_Dec(Reg_Contents)
+    def Read_16_Reg(self, Target_Address): # Target_Address in form of "0x40048024"
+        if not self.IsConnected:
+            raise Exception ("No connected mbed Device")
+        if(len(Target_Address) != 10 or not Target_Address.startswith("0x")):
+            raise Exception ("Register Address should be 4 bytes/8 hex digits long and be in format 0x00000000")
+        Target_Address = Target_Address[2:]
+        Reg_Contents = self._Serial_Read(self.Serial_Device, self.Read_16_Reg_Instruction, Target_Address, self.Expected_Bytes_Read_16_Reg)
+        if(len(Reg_Contents) != 2*(self.Expected_Bytes_Read_16_Reg - 1)): # Expect 16 bits returned 
+            raise Exception ("0x31 Issue with Returned Data")
+        return Reg_Contents  # Hex Form
+
+    def Read_8_Reg(self, Target_Address): # Target_Address in form of "0x40048024"
+        if not self.IsConnected:
+            raise Exception ("No connected mbed Device")
+        if(len(Target_Address) != 10 or not Target_Address.startswith("0x")):
+            raise Exception ("Register Address should be 4 bytes/8 hex digits long and be in format 0x00000000")
+        Target_Address = Target_Address[2:]
+        Reg_Contents = self._Serial_Read(self.Serial_Device, self.Read_8_Reg_Instruction, Target_Address, self.Expected_Bytes_Read_8_Reg)
+        if(len(Reg_Contents) != 2*(self.Expected_Bytes_Read_8_Reg - 1)): # Expect 8 bits returned 
+            raise Exception ("0x32 Issue with Returned Data")
+        return Reg_Contents  # Hex Form
 
     def _Serial_Read(serialPort, Instruction, Target_Address, Expected_Bytes):
         # Assume arguments are valid for given instruction - check in public method
