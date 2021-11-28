@@ -10,6 +10,7 @@ char buf[MAXIMUM_BUFFER_SIZE] = "{0}";
 
 void Serial_Response(void);
 void Serial_Read_Register(void);
+void Serial_Mirror_Request(void);
 
 int main(){
     DigitalOut led(LED1);
@@ -70,5 +71,11 @@ void Serial_Read_Register(void){
     serial_port.write(buf, num);
 
     // printf("Address = %p Contents = %lu\n", Address, *Address);
+
+}
+
+void Serial_Mirror_Request(uint32_t num_bytes){ // Need to know the number of bytes received in order to return - Does not include '\n' cahracter
+    // For testing purposes, return the command sent over serial 
+    
 
 }
