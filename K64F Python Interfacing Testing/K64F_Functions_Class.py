@@ -64,9 +64,11 @@ class Serial_K64F:
     Baud_Rate = []  # For now assume all operating at 9600 - may change later so might need to add later on 
     # IP = []  # Don't think we need this for USB Serial(Mbed) devices 
 
-    Connected_Device_Info = [] # [0] = COM_PORT
-    Serial_Device = None
+    # Assume each instance of this class has no more than 1 conected devices 
+    Connected_Device_Index = None # Store the index of the connected device, to gather info from above lists 
+    Serial_Device = None # Open Serial Port of the Connected Device 
 
+    # Instructions + Expected Number of Bytes Returned 
     Read_32_Reg_Instruction = "0x30" 
     Expected_Bytes_Read_32_Reg = 5 # 4 bytes + '/n'
 
