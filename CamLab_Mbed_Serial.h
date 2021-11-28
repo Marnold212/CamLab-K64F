@@ -16,7 +16,7 @@ public:
 
 public:
     // Doesn't read any of the data, simply waits for it to arrive - must be better way of ensuring we get all data 
-    uint32_t Receive_Serial_Data(void); // Returns the number of bytes received 
+    void Receive_Serial_Data(void); 
     
     // After waiting for all data to arrive, read buf, and return number of bytes received 
     uint32_t Read_Serial_Buffer(void);
