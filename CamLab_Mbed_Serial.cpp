@@ -9,16 +9,16 @@ void CamLab_Mbed_Serial::Init_Serial(void){
         /* bits */ 8,
         /* parity */ BufferedSerial::None,
         /* stop bit */ 1
-    )
+    );
 }
 
 void CamLabMbed_Serial::Receive_Serial_Data(void){
-    while(serial_port.read)
+    while(serial_port.read);
 }
 
  uint32_t CamLabMbed_Serial::Read_Serial_Buffer(void){
     // Reads Serial buffer to buf[], while returning the number of bytes received 
-    return serial_port.read(buf, sizeof(buf))
+    return serial_port.read(buf, sizeof(buf));
  }
 
 // void Serial_Response(void){
