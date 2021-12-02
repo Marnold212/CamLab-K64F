@@ -9,7 +9,7 @@
 
 /** Expected Format of Command */ 
 /* Length of various parts of Command */
-#define Num_Bytes_EOL                           1  /* End of Line character occupies 1 byte */
+#define Num_Bytes__EOL                           1  /* End of Line character occupies 1 byte */
 #define Num_Bytes_Instruction                   1  /* Instruction character occupies 1 byte */
 #define Num_Bytes_32_Reg                        4  /* The value stored in a 32-bit Register occupies 4 byte */
 #define Num_Bytes_16_Reg                        2  /* The value stored in a 16-bit Register occupies 4 byte */
@@ -39,13 +39,31 @@
 #define Write_16_Expected_Bytes                 Num_Bytes_Instruction + Num_Bytes_Reg_Addr + Num_Bytes_16_Reg + Num_Bytes_EOL  
 #define Write_8_Expected_Bytes                  Num_Bytes_Instruction + Num_Bytes_Reg_Addr + Num_Bytes_8_Reg + Num_Bytes_EOL  
 
+/** Expected Replied Bytes */
+/* Expected number of bytes sent as reply to a given instruction including End of Line char */
+
+#define Read_32_Response_Bytes                  Num_Bytes_32_Reg + Num_Bytes_EOL
+#define Read_16_Response_Bytes                  Num_Bytes_16_Reg + Num_Bytes_EOL
+#define Read_8_Response_Bytes                   Num_Bytes_8_Reg + Num_Bytes_EOL
+#define Write_32_Response_Bytes                 Num_Bytes_32_Reg + Num_Bytes_EOL
+#define Write_16_Response_Bytes                 Num_Bytes_16_Reg + Num_Bytes_EOL
+#define Write_8_Response_Bytes                  Num_Bytes_8_Reg + Num_Bytes_EOL
+
+
 char buf[MAXIMUM_BUFFER_SIZE] = "{0}"; /* Buffer for Serial Communication - limited to 32 bytes */
 
-
+/* ----------------------------------------------------------------------------
+   -- CamLab_Mbed_Serial Communication Class 
+   ---------------------------------------------------------------------------- */
 class CamLab_Mbed_Serial
 {
 public:
-    void Init_Serial(void);
+    static BufferedSerial serial_port; /* Stores object for Serial Communication */
+    CamLab_Mbed_Serial::CamLab_Mbed_Serial(){Init_Serial()}; /* Upon construction initialise serial channel */
+
+    void Init_Serial(void); /* Initialises the Serial Communication object */
+
+
 
 
 public:
