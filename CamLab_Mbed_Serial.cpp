@@ -1,8 +1,9 @@
 #include "CamLab_Mbed_Serial.h"
+#include "mbed.h"
 
 void CamLab_Mbed_Serial::Init_Serial(void){
     // Create a BufferedSerial object with a default baud rate.
-    static BufferedSerial serial_port(USBTX, USBRX); // May be able to have full-duplex if no arguments given to buffered Serial class 
+    // BufferedSerial serial_port(USBTX, USBRX); // May be able to have full-duplex if no arguments given to buffered Serial class 
     // Set desired properties (9600-8-N-1).   Currently 9600 so I can easily use TeraTerm, however my want to increase to 115200 for performance 
     serial_port.set_baud(9600);
     serial_port.set_format(
@@ -12,13 +13,23 @@ void CamLab_Mbed_Serial::Init_Serial(void){
     );
 }
 
-void CamLabMbed_Serial::Receive_Serial_Data(void){
-    while(serial_port.read);
+void CamLab_Mbed_Serial::Receive_Serial_Data(void){
+    while(serial_port.readable()){
+        ThisThread::sleep_for(10ms); // Needed to get full input - 10ms just arbitrary value
+    }
 }
 
- uint32_t CamLabMbed_Serial::Read_Serial_Buffer(void){
+ int CamLab_Mbed_Serial::Read_Serial_Buffer(void){
     // Reads Serial buffer to buf[], while returning the number of bytes received 
     return serial_port.read(buf, sizeof(buf));
+ }
+
+ void CamLab_Mbed_Serial::Write_Serial_Register(char *reg, int num){
+    serial_port.write(reg, num);
+ }
+
+ void CamLab_Mbed_Serial::print_Test(){
+    printf("Yep\n");
  }
 
 // void Serial_Response(void){
