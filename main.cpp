@@ -3,48 +3,52 @@
 
 using namespace std;
 
-BufferedSerial serial_port(USBTX, USBRX);
+// BufferedSerial  serial_port(USBTX, USBRX);
+
+// class CamLab
+// {
+// private:
+//     BufferedSerial *serial_handle;
+//     /* data */
+// public:
+//     CamLab(BufferedSerial *serial_pointer);
+//     ~CamLab();
+
+//     void Write_Reg(char *reg, int num){
+//         serial_handle->write(reg, num);
+//     }
+// };
+
+// // Use an Initialisation List
+// CamLab::CamLab(BufferedSerial *serial_pointer) : serial_handle(serial_pointer)
+// {
+// }
+
+// CamLab::~CamLab()
+// {
+// }
 
 
+BufferedSerial  serial_port(USBTX, USBRX);
+// BufferedSerial class is NonCopyable, therefore must pass pointer to Custom Class to use functionality 
+char buff[32];
 int main(){
+    buff[0] = 'H';
+    buff[1] = 'e';
+    buff[2] = 'l';
+    buff[3] = 'l';
+    buff[4] = 'o';
+    buff[5] = '\n';
 
-    // printf("Helo World \n");
-    
-    CamLab_Mbed_Serial Serial_Interface(serial_port); // Don't use parenthases  
-    char message[6] = {'H', 'e', 'l', 'l', 'o', '\n'};
+    CamLab_Mbed_Serial Test_Class(&serial_port);
+    // Test_Class.Write_Serial_Message(buff, 6);
+    while(1){
+        Test_Class.Serial_Response();
+        // Test_Class.Write_Serial_Message(buff, 5);
+    }
 
-    Serial_Interface.print_Test();
-    Serial_Interface.Write_Serial_Register(message, 6);
-    // Serial_Interface.Receive_Serial_Data();
-    // Serial_Interface.Write_Serial_Register(message, 6);
+
 }
-
-
-
-
-// // Maximum number of element the application buffer can contain
-// #define MAXIMUM_BUFFER_SIZE                                                  32
-// // Create a BufferedSerial object with a default baud rate.
-// static BufferedSerial serial_port(USBTX, USBRX); // May be able to have full-duplex if no arguments given to buffered Serial class 
-
-// // Application buffer to receive & send serial data
-// char buf[MAXIMUM_BUFFER_SIZE] = "{0}";
-
-// void Serial_Response(void);
-// void Serial_Read_Register(void);
-// void Serial_Mirror_Request(void);
-
-// int main(){
-//     DigitalOut led(LED1);
-//     // Set desired properties (9600-8-N-1).   Currently 9600 so I can easily use TeraTerm, however my want to increase to 115200 for performance 
-//     serial_port.set_baud(9600);
-//     serial_port.set_format(
-//         /* bits */ 8,
-//         /* parity */ BufferedSerial::None,
-//         /* stop bit */ 1
-//     );
-
-    
 
 //     while(1)
 //     {
@@ -71,6 +75,32 @@ int main(){
 
 //     }
 // }
+
+// // Maximum number of element the application buffer can contain
+// #define MAXIMUM_BUFFER_SIZE                                                  32
+// // Create a BufferedSerial object with a default baud rate.
+// static BufferedSerial serial_port(USBTX, USBRX); // May be able to have full-duplex if no arguments given to buffered Serial class 
+
+// // Application buffer to receive & send serial data
+// char buf[MAXIMUM_BUFFER_SIZE] = "{0}";
+
+// void Serial_Response(void);
+// void Serial_Read_Register(void);
+// void Serial_Mirror_Request(void);
+
+// int main(){
+//     DigitalOut led(LED1);
+//     // Set desired properties (9600-8-N-1).   Currently 9600 so I can easily use TeraTerm, however my want to increase to 115200 for performance 
+//     serial_port.set_baud(9600);
+//     serial_port.set_format(
+//         /* bits */ 8,
+//         /* parity */ BufferedSerial::None,
+//         /* stop bit */ 1
+//     );
+
+    
+
+
 
 // void Serial_Read_Register(void){
 //     uint32_t num = 5;   // 4 bytes of data, "\n" char for endline

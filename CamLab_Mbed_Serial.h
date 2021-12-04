@@ -9,7 +9,7 @@
 
 /** Expected Format of Command */ 
 /* Length of various parts of Command */
-#define Num_Bytes__EOL                           1  /* End of Line character occupies 1 byte */
+#define Num_Bytes_EOL                           1  /* End of Line character occupies 1 byte */
 #define Num_Bytes_Instruction                   1  /* Instruction character occupies 1 byte */
 #define Num_Bytes_32_Reg                        4  /* The value stored in a 32-bit Register occupies 4 byte */
 #define Num_Bytes_16_Reg                        2  /* The value stored in a 16-bit Register occupies 4 byte */
@@ -23,12 +23,12 @@
 
 /** Instructions - Instruction Bytes */ 
 /* 1st byte of command received from PC Serial channel */
-#define Read_32_Reg                             0x30
-#define Read_16_Reg                             0x31
-#define Read_8_Reg                              0x32
-#define Write_32_Reg                            0x33
-#define Write_16_Reg                            0x34
-#define Write_8_Reg                             0x35
+#define Read_32_Reg_Instr                           0x30
+#define Read_16_Reg_Instr                           0x31
+#define Read_8_Reg_Instr                            0x32
+#define Write_32_Reg_Instr                          0x33
+#define Write_16_Reg_Instr                          0x34
+#define Write_8_Reg_Instr                           0x35
 
 /** Expected Received Bytes */
 /* Expected number of received bytes expected for a given instruction including End of Line char */
@@ -49,8 +49,11 @@
 #define Write_16_Response_Bytes                 Num_Bytes_16_Reg + Num_Bytes_EOL
 #define Write_8_Response_Bytes                  Num_Bytes_8_Reg + Num_Bytes_EOL
 
+/** Address Offsets */
+/* Define the Offset of serial buffer for Register Address for various commands */
 
-
+#define Read_Reg_Addr_Offset                    1
+#define Write_Reg_Addr_Offset                   1
 
 /* ----------------------------------------------------------------------------
    -- CamLab_Mbed_Serial Communication Class 
@@ -59,13 +62,13 @@ class CamLab_Mbed_Serial
 {
     public:
 
-    char buf[MAXIMUM_BUFFER_SIZE] = "{0}"; /* Buffer for Serial Communication - limited to 32 bytes */
-    BufferedSerial serial_port;
+    char buf_serial[MAXIMUM_BUFFER_SIZE] = "{0}"; /* Buffer for Serial Communication - limited to 32 bytes */
+    BufferedSerial *serial_handle;
 
     // static BufferedSerial serial_port(USBTX, USBRX); /* Stores object for Serial Communication */
     // Use a list iniitialization
     // BufferedSerial is a NonCopyable Class 
-    CamLab_Mbed_Serial(BufferedSerial buffered_serial_port) : serial_port(buffered_serial_port){
+    CamLab_Mbed_Serial(BufferedSerial *serial_pointer) : serial_handle(serial_pointer){
         
         Init_Serial(); 
     
@@ -79,7 +82,12 @@ class CamLab_Mbed_Serial
     // Doesn't read any of the data, simply waits for it to arrive - must be better way of ensuring we get all data 
     void Receive_Serial_Data(void); 
     
-    // After waiting for all data to arrive, read buf, and return number of bytes received 
+
+    /**
+     * @brief Once all serial data has arrived, read to buffer, and return number of bytes received 
+     * 
+     * @return int Number of bytes received, intcluding '\n' char
+     */
     int Read_Serial_Buffer(void);
 
     /**
@@ -90,10 +98,13 @@ class CamLab_Mbed_Serial
      * @param reg Pointer to 1st character of byte register storing message to send
      * @param num Length of message to send (Manual handling of Endline characters '\n')
      */
-    void Write_Serial_Register(char *reg, int num); 
+    void Write_Serial_Message(char *reg, int num); 
 
-    void print_Test();
+    void Append_EOL_Char(int Num_Reply_Bytes);
 
+    void Serial_Response(void);
+
+    void Serial_Register_Read(uint32_t Addr, int size);
 
 };
 

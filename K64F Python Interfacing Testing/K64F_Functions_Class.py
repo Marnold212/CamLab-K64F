@@ -205,21 +205,27 @@ class Serial_K64F:
         serialString = "" # Used to hold data coming over UART
         # NEED TO ADD A TIMEOUT TO FOLLOWING LINE
 
+
         # Removing while(1) should allow the read(size=Expected_Bytes) to naturally timeout after configured time 
+
+        ''' Don't need this chucnk since we know how many bytes we expect to get back 
+            Therefore we can use the builtin timeout from the pyserial library  
         while(1):
+            print(self.Serial_Device.in_waiting)
             if self.Serial_Device.in_waiting > 0:
                 # Read data out of the buffer until a carriage return / new line is found
                 # Note there is an inherant issue with this where, if a transmitted value has the equivalent hex value of 0a, it triggers the end of line
                 # If we are sending unsigned bytes across channel, inevitably some will have the value of '\n' character 
                 # serialString = serialPort.readline()
-                
-                serialString = self.Serial_Device.read(size=Expected_Bytes)
-                serialString = serialString.hex()  # Decode bytes into raw hex values
-                # if(serialString[Expected_Bytes-1] != 10):    # 10 = 0x0a = '\n' LF character in Ascii 
-                if(serialString[-2: ] != '0a'):    # 10 = 0x0a = '\n' LF character in Ascii 
-                    raise Exception ("Issue with Received Data") # Need to implement proper error handling
-                else:
-                    return serialString[:-2]
+        '''
+
+        serialString = self.Serial_Device.read(size=Expected_Bytes)
+        serialString = serialString.hex()  # Decode bytes into raw hex values
+        # if(serialString[Expected_Bytes-1] != 10):    # 10 = 0x0a = '\n' LF character in Ascii 
+        if(serialString[-2: ] != '0a'):    # 10 = 0x0a = '\n' LF character in Ascii 
+            raise Exception ("Issue with Received Data") # Need to implement proper error handling
+        else:
+            return serialString[:-2]
 
      
 

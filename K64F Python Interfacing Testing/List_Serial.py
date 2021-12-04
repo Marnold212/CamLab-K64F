@@ -18,7 +18,7 @@ else:
         COM_Port = ports[i][0][0:16]   # port[i] is a particular device - port[i][0] is the COM Port of the device 
         if(ports[i][1][0:16] == "mbed Serial Port"):     # port[i] is a particular device - port[i][1] is the description of the device - port[i][1][0:16] are the characters containing the mbed Serial Port description
             print("Attempting to open mbed Serial Port on %s " % COM_Port)
-            device = serial.Serial(COM_Port)
+            device = serial.Serial(COM_Port, timeout=1)
             result = device.readline() 
             print(result)    # Return has a "b'  " preface which measns the content is bytes  
             

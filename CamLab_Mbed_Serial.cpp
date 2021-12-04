@@ -5,48 +5,61 @@ void CamLab_Mbed_Serial::Init_Serial(void){
     // Create a BufferedSerial object with a default baud rate.
     // BufferedSerial serial_port(USBTX, USBRX); // May be able to have full-duplex if no arguments given to buffered Serial class 
     // Set desired properties (9600-8-N-1).   Currently 9600 so I can easily use TeraTerm, however my want to increase to 115200 for performance 
-    serial_port.set_baud(9600);
-    serial_port.set_format(
+    serial_handle->set_baud(9600);
+    serial_handle->set_format(
         /* bits */ 8,
         /* parity */ BufferedSerial::None,
         /* stop bit */ 1
     );
 }
 
-void CamLab_Mbed_Serial::Receive_Serial_Data(void){
-    while(serial_port.readable()){
-        ThisThread::sleep_for(10ms); // Needed to get full input - 10ms just arbitrary value
+void CamLab_Mbed_Serial::Receive_Serial_Data(void){ // Look for more efficient implemmentation 
+    ThisThread::sleep_for(10ms); // Needed to get full input - 10ms just arbitrary value
+    
+}
+
+int CamLab_Mbed_Serial::Read_Serial_Buffer(void){ 
+// Reads Serial buffer to buf[], while returning the number of bytes received 
+    return serial_handle->read(buf_serial, sizeof(buf_serial));
+}
+
+void CamLab_Mbed_Serial::Write_Serial_Message(char *reg, int num){
+    serial_handle->write(reg, num);
+}
+
+void CamLab_Mbed_Serial::Append_EOL_Char(int Num_Reply_Bytes)
+{
+    buf_serial[Num_Reply_Bytes - 1] = '\n';
+}
+
+void CamLab_Mbed_Serial::Serial_Response(void){
+    uint32_t num_in = 0;
+    // ThisThread::sleep_for(1s);
+    while (serial_handle->readable()) {
+        Receive_Serial_Data(); // Wait for a given time to receive all data ?? Look for more efficient implemmentation  
+        if ((num_in = serial_handle->read(buf_serial, sizeof(buf_serial)))) { // Check there is something other than "\n" in the buffer AKA num_1 != 0
+            // if(buf_serial[0] == 0x30){
+            //     if(num_in == 6){ // 1 Command byte (030), 4 address bytes (8 Hex Digits), 1 End of Line ("\n")
+            //         Serial_Read_Register();
+            //     }
+            // }  
+            if(buf_serial[0] == Read_32_Reg_Instr){
+                if(num_in == Read_32_Expected_Bytes){
+                    uint32_t Address = __REV(*(uint32_t *)(buf_serial + Read_Reg_Addr_Offset));
+                    Serial_Register_Read(Address, Num_Bytes_32_Reg);  // Read 4 bytes from Address defined in Serial Command into buf_serial
+                    Append_EOL_Char(Read_32_Response_Bytes);
+                    Write_Serial_Message(buf_serial, Read_32_Response_Bytes);
+                }
+            }
+        }
+
     }
 }
 
- int CamLab_Mbed_Serial::Read_Serial_Buffer(void){
-    // Reads Serial buffer to buf[], while returning the number of bytes received 
-    return serial_port.read(buf, sizeof(buf));
- }
-
- void CamLab_Mbed_Serial::Write_Serial_Register(char *reg, int num){
-    serial_port.write(reg, num);
- }
-
- void CamLab_Mbed_Serial::print_Test(){
-    printf("Yep\n");
- }
-
-// void Serial_Response(void){
-//     uint32_t num_in = 0;
-//     // ThisThread::sleep_for(1s);
-//     while (serial_port.readable()) {
-//         ThisThread::sleep_for(10ms); // Needed to get full input - 10ms just arbitrary value 
-//         if ((num_in = serial_port.read(buf, sizeof(buf)))) { // Check there is something other than "\n" in the buffer AKA num_1 != 0
-//             if(buf[0] == 0x30){
-//                 if(num_in == 6){ // 1 Command byte (030), 4 address bytes (8 Hex Digits), 1 End of Line ("\n")
-//                     Serial_Read_Register();
-//                 }
-//             }  
-//         }
-
-//     }
-// }
+void CamLab_Mbed_Serial::Serial_Register_Read(uint32_t Addr, int size)
+{
+    *(uint32_t *)(buf_serial) = __REV(*(uint32_t *)(Addr));
+}
 
 // void Serial_Read_Register(void){
 //     uint32_t num = 5;   // 4 bytes of data, "\n" char for endline
