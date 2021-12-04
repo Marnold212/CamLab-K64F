@@ -7,8 +7,10 @@
 /* Limited to 32 in hardware Serial buffer ? */
 #define MAXIMUM_BUFFER_SIZE                                                   32
 
+
 /** Expected Format of Command */ 
 /* Length of various parts of Command */
+/* Could convert some of these definitions into enum for neater code */
 #define Num_Bytes_EOL                           1  /* End of Line character occupies 1 byte */
 #define Num_Bytes_Instruction                   1  /* Instruction character occupies 1 byte */
 #define Num_Bytes_32_Reg                        4  /* The value stored in a 32-bit Register occupies 4 byte */
@@ -58,6 +60,10 @@
 /* ----------------------------------------------------------------------------
    -- CamLab_Mbed_Serial Communication Class 
    ---------------------------------------------------------------------------- */
+
+/* Note that Byte order changes occurs due to casting of char[] to uint and vice-versa */
+
+
 class CamLab_Mbed_Serial
 {
     public:
@@ -101,14 +107,74 @@ class CamLab_Mbed_Serial
      */
     void Write_Serial_Message(char *reg, int num); 
 
+
+    /**
+     * @brief Sets the last byte (Num_Reply_Bytes - 1) of the message to '\n' as an added error checking step for the PC when receiving serial response 
+     * Uses the ser_buff[] character buffer as the basis for storing the messge sent as a response. Number of bytes sent in 
+     * response to a given instruction is defined in header file. 
+     * 
+     * @param Num_Reply_Bytes Number of bytes sent in response for a given instruction, defined in header file.  
+     */
     void Append_EOL_Char(int Num_Reply_Bytes);
 
+    /**
+     * @brief Public method used for responding to serial commands. Check if there any serial bytes availble to read, if not return nothing. 
+     * If there are bytes available, wait short period to ensure full message has arrived, then read into intermediate char ser_buff[32]. 
+     * Check the instruction (1st) byte of the received message, and compare to instructions defined in header file. As an error checking 
+     * step check that the message has an End of Line character ('\n') at the end of the expected length of message for given instruction. 
+     * Respond appropriately for the given instruction using same ser_buff array for storing the reply, and adding an '\n' to EOL. 
+     * 
+     * Command Layout: 
+     * ------------------------------------------------------------------
+     * | Instruction | Address | Extra Information (e.g. values) | '\n' | 
+     * ------------------------------------------------------------------
+     * 
+     * Response Layout: 
+     * ----------------
+     * | Value | '\n' | 
+     * ----------------
+     * 
+     */
     void Serial_Response(void);
 
-    void Serial_Register_Read(uint32_t Addr, int size);
+  
+    //  * first determine the 4-byte address to register of interest, which is read as 4 consecutive bytes of command in ser_buff[] offset by an 
+    //  * amount depending on defined length of instruction which comes at start of command
+     
+
+    /**
+     * @brief If the received command instruction (1st) byte indicates a request to read a device register of a specified size, 
+     * and the value in the address is entered into the start of the ser_buff[] array. Note that the byte order is reversed from 
+     * the format used by mbed device (Little Endian) so that the returned value has MSB at left and LSB at right. 
+     * ## ONLY USE 16 OR 8 BIT READS IF SECTIONS OF REGISTER ARE READ PROTECTED, otherwise you can easily run into issues where you 
+     * are not reading the correct bytes due to the reversing of orders that are occuring. Try and always read a 32 bit aligned array 
+     * as specified in datasheet for K64F where possible.
+     *  
+     * 
+     * @param Addr Address of LEFTMOST byte of register in question - must be a uint32_t (Obtain from command via __REV(*(uint32_t *)(buf_serial + Read_Reg_Addr_Offset)))
+     * @param size Size of address being read: 8;16;32 bits (Use definitions from header file) - Use 32 unless sections of target are read protected to ensure correct byte order. 
+     */
+    void Serial_Register_Read(uint32_t Addr, int size = Num_Bytes_32_Reg);
     
+
+    /**
+     * @brief Read a 32 byte address. First extract address from ser_buff[] to uint32_t at offset defined in header file, then 
+     * read the value back into ser_buff[] and append '\n' at last byte of expected length of response message. Then write this 
+     * value back to the PC. 
+     * If read is taken from Left address of 32-bit aligned resigster: 
+     * Response Bit Order: | 31-24 | 23-16 | 15-8 | 7-0 | '\n' |
+     * 
+     */
     void Read_32_Reg_Response(void);
 
+    /**
+     * @brief Read a 32 byte address. First extract address from ser_buff[] to uint32_t at offset defined in header file, then 
+     * read the value back into ser_buff[] and append '\n' at last byte of expected length of response message. Then write this 
+     * value back to the PC. 
+     * If read is taken from Left address of 32-bit aligned resigster: 
+     * Response Bit Order: | 15-8 | 7-0 | '\n' |
+     * 
+     */
     void Read_16_Reg_Response(void);
 
     void Read_8_Reg_Response(void);
