@@ -62,6 +62,7 @@ class CamLab_Mbed_Serial
 {
     public:
 
+    // Consider using mbed ByteBuffer class ?
     char buf_serial[MAXIMUM_BUFFER_SIZE] = "{0}"; /* Buffer for Serial Communication - limited to 32 bytes */
     BufferedSerial *serial_handle;
 
@@ -105,7 +106,12 @@ class CamLab_Mbed_Serial
     void Serial_Response(void);
 
     void Serial_Register_Read(uint32_t Addr, int size);
+    
+    void Read_32_Reg_Response(void);
 
+    void Read_16_Reg_Response(void);
+
+    void Read_8_Reg_Response(void);
 };
 
 #endif

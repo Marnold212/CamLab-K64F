@@ -236,11 +236,12 @@ mbed_Serial_Object = Serial_K64F()
 mbed_Serial_Object.List_All_Mbed_USB_Devices()
 print(mbed_Serial_Object.Num_Mbed_Devices)
 mbed_Serial_Object.Connect_To_USB_Device(0)
-print(mbed_Serial_Object.IsConnected)
-print(mbed_Serial_Object.COM_PORTS[0])
-print(mbed_Serial_Object.Serial_Device)
+# print(mbed_Serial_Object.IsConnected)
+# print(mbed_Serial_Object.COM_PORTS[0])
+# print(mbed_Serial_Object.Serial_Device)
 print(mbed_Serial_Object.Read_32_Reg("0x40048024"))
-
+print(mbed_Serial_Object.Read_16_Reg("0x40048024"))
+print(mbed_Serial_Object.Read_8_Reg("0x40048024"))
 '''
 Serial_device = serial.Serial(port="COM4", baudrate=9600, bytesize=8, timeout=1, stopbits=serial.STOPBITS_ONE)
 Target_Register = "0x40048024"

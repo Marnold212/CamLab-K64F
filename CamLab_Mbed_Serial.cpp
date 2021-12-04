@@ -32,8 +32,32 @@ void CamLab_Mbed_Serial::Append_EOL_Char(int Num_Reply_Bytes)
     buf_serial[Num_Reply_Bytes - 1] = '\n';
 }
 
+// void CamLab_Mbed_Serial::Serial_Response(void){
+//     uint32_t num_in = 0;
+//     // ThisThread::sleep_for(1s);
+//     while (serial_handle->readable()) {
+//         Receive_Serial_Data(); // Wait for a given time to receive all data ?? Look for more efficient implemmentation  
+//         if ((num_in = serial_handle->read(buf_serial, sizeof(buf_serial)))) { // Check there is something other than "\n" in the buffer AKA num_1 != 0
+//             // if(buf_serial[0] == 0x30){
+//             //     if(num_in == 6){ // 1 Command byte (030), 4 address bytes (8 Hex Digits), 1 End of Line ("\n")
+//             //         Serial_Read_Register();
+//             //     }
+//             // }  
+//             if(buf_serial[0] == Read_32_Reg_Instr){
+//                 if(num_in == Read_32_Expected_Bytes){
+//                     uint32_t Address = __REV(*(uint32_t *)(buf_serial + Read_Reg_Addr_Offset));
+//                     Serial_Register_Read(Address, Num_Bytes_32_Reg);  // Read 4 bytes from Address defined in Serial Command into buf_serial
+//                     Append_EOL_Char(Read_32_Response_Bytes);
+//                     Write_Serial_Message(buf_serial, Read_32_Response_Bytes);
+//                 }
+//             }
+//         }
+
+//     }
+// }
+
 void CamLab_Mbed_Serial::Serial_Response(void){
-    uint32_t num_in = 0;
+    int num_in = 0;
     // ThisThread::sleep_for(1s);
     while (serial_handle->readable()) {
         Receive_Serial_Data(); // Wait for a given time to receive all data ?? Look for more efficient implemmentation  
@@ -43,22 +67,58 @@ void CamLab_Mbed_Serial::Serial_Response(void){
             //         Serial_Read_Register();
             //     }
             // }  
-            if(buf_serial[0] == Read_32_Reg_Instr){
-                if(num_in == Read_32_Expected_Bytes){
-                    uint32_t Address = __REV(*(uint32_t *)(buf_serial + Read_Reg_Addr_Offset));
-                    Serial_Register_Read(Address, Num_Bytes_32_Reg);  // Read 4 bytes from Address defined in Serial Command into buf_serial
-                    Append_EOL_Char(Read_32_Response_Bytes);
-                    Write_Serial_Message(buf_serial, Read_32_Response_Bytes);
-                }
+            if(buf_serial[0] == Read_32_Reg_Instr && num_in == Read_32_Expected_Bytes){ //  
+                Read_32_Reg_Response();
+            }
+            else if(buf_serial[0] == Read_16_Reg_Instr && num_in == Read_16_Expected_Bytes){
+                Read_16_Reg_Response();
+            }
+            else if(buf_serial[0] == Read_8_Reg_Instr && num_in == Read_8_Expected_Bytes){
+                Read_8_Reg_Response();
             }
         }
-
     }
 }
 
-void CamLab_Mbed_Serial::Serial_Register_Read(uint32_t Addr, int size)
+
+void CamLab_Mbed_Serial::Read_32_Reg_Response(void)
 {
-    *(uint32_t *)(buf_serial) = __REV(*(uint32_t *)(Addr));
+    uint32_t Address = __REV(*(uint32_t *)(buf_serial + Read_Reg_Addr_Offset));
+    Serial_Register_Read(Address, Num_Bytes_32_Reg);  // Read 4 bytes from Address defined in Serial Command into buf_serial
+    Append_EOL_Char(Read_32_Response_Bytes);
+    Write_Serial_Message(buf_serial, Read_32_Response_Bytes);
+}
+
+void CamLab_Mbed_Serial::Read_16_Reg_Response(void)
+{
+    uint32_t Address = __REV(*(uint32_t *)(buf_serial + Read_Reg_Addr_Offset));
+    Serial_Register_Read(Address, Num_Bytes_16_Reg);  // Read 4 bytes from Address defined in Serial Command into buf_serial
+    Append_EOL_Char(Read_16_Response_Bytes);
+    Write_Serial_Message(buf_serial, Read_16_Response_Bytes);
+}
+
+void CamLab_Mbed_Serial::Read_8_Reg_Response(void)
+{
+    uint32_t Address = __REV(*(uint32_t *)(buf_serial + Read_Reg_Addr_Offset));
+    Serial_Register_Read(Address, Num_Bytes_8_Reg);  // Read 4 bytes from Address defined in Serial Command into buf_serial
+    Append_EOL_Char(Read_8_Response_Bytes);
+    Write_Serial_Message(buf_serial, Read_8_Response_Bytes);
+}
+
+
+
+
+void CamLab_Mbed_Serial::Serial_Register_Read(uint32_t Addr, int size = Num_Bytes_32_Reg)
+{
+    if(size == Num_Bytes_32_Reg){
+        *(uint32_t *)(buf_serial) = __REV(*(uint32_t *)(Addr));
+    }
+    else if(size == Num_Bytes_16_Reg){
+        *(uint16_t *)(buf_serial) = __REVSH(*(uint16_t *)(Addr));  // Use different function to reverse 16 bit value 
+    }
+    else if(size == Num_Bytes_8_Reg){
+        *(uint8_t *)(buf_serial) = *(uint8_t *)(Addr);  // Don't need to reverse byte order for a single byte 
+    }    
 }
 
 // void Serial_Read_Register(void){
