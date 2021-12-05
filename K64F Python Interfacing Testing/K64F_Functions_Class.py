@@ -49,7 +49,26 @@ class Serial_K64F:
                     self.ID_USB.append(USB_Serial_Number)
                     self.connectionType.append(11)     # Added 10 onto definitions used by LJM library to avoid mixing up - however can change if confusing 
                     Temp_Serial_device.close()    # Close COM Port communication once info obtained
-    
+               
+                elif(ports[i][1].startswith("USB Serial Device")): # For laptop without specific mbed drivers
+                    default_baudrate = 9600 # Assume all boards use default baudrate of 9600 
+                    try:
+                        Temp_Serial_device = serial.Serial(port=COM_Port, baudrate=default_baudrate, bytesize=8, timeout=1, stopbits=serial.STOPBITS_ONE)
+                    except:
+                        raise Exception ("Issues connecting with mbed Device on %s", COM_Port) # Need to implement proper error handling 
+                    # How can we/Do we need to check we have actually connected to device - and that it is meant to be used for what we are using it for 
+                    if(not Temp_Serial_device.readable()):
+                        raise Exception ("Issues connecting with mbed Device on %s", COM_Port) # Need to implement proper error handling 
+                    self.Num_Mbed_Devices += 1
+                    self.COM_PORTS.append(COM_Port)
+                    USB_INFO = ports[i].usb_info().split('=') # USB-PID should be Unique 
+                    USB_VIDPID = USB_INFO[1].split(' ')[0]
+                    self.VID_PID.append(USB_VIDPID)
+                    USB_Serial_Number = USB_INFO[2].split(' ')[0]
+                    self.ID_USB.append(USB_Serial_Number)
+                    self.connectionType.append(11)     # Added 10 onto definitions used by LJM library to avoid mixing up - however can change if confusing 
+                    Temp_Serial_device.close()    # Close COM Port communication once info obtained
+
     def Connect_To_USB_Device(self, Device_Index, Serial_baudrate = 9600):
         if(self.IsConnected):
             print("Already Connected to a Device")
