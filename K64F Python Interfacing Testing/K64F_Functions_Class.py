@@ -18,7 +18,7 @@ class Serial_K64F:
     VID_PID = []   # USB VID:PID are the Vendor/Product ID respectively - smae for each K64F Board? - You can determine HIC ID from last 8 digits of Serial Number? 
     # Note that the 0240 at the start of Serial Number refers to the K64F Family 
     ID_USB = []   # ID_USB will be the USB serial number - should be unique
-    Baud_Rate = []  # For now assume all operating at 9600 - may change later so might need to add later on 
+    Baud_Rate = []  # ASsume all operating t 115200 if configured properly - might need to check properly later on 
     # IP = []  # Don't think we need this for USB Serial(Mbed) devices 
 
     # Assume each instance of this class has no more than 1 conected devices 
@@ -33,7 +33,7 @@ class Serial_K64F:
             for i in range(Num_Serial_Devices):
                 COM_Port = ports[i].usb_description()   # ports[i].device outputs COM_PORT    (Note port[i][0][0:16]  is a particular device - port[i][0] is the COM Port of the device)
                 if(ports[i][1].startswith("mbed Serial Port")):     # port[i] is a particular device - port[i][1] is the description of the device - port[i][1][0:16] are the characters containing the mbed Serial Port description
-                    default_baudrate = 9600 # Assume all boards use default baudrate of 9600 
+                    default_baudrate = 115200 # Modified to use 115200 for faster data transfer 
                     try:
                         Temp_Serial_device = serial.Serial(port=COM_Port, baudrate=default_baudrate, bytesize=8, timeout=1, stopbits=serial.STOPBITS_ONE)
                     except:
@@ -52,7 +52,7 @@ class Serial_K64F:
                     Temp_Serial_device.close()    # Close COM Port communication once info obtained
                
                 elif(ports[i][1].startswith("USB Serial Device")): # For laptop without specific mbed drivers
-                    default_baudrate = 9600 # Assume all boards use default baudrate of 9600 
+                    default_baudrate = 115200 # Modified to use 115200 for faster data transfer
                     try:
                         Temp_Serial_device = serial.Serial(port=COM_Port, baudrate=default_baudrate, bytesize=8, timeout=1, stopbits=serial.STOPBITS_ONE)
                     except:
@@ -70,7 +70,7 @@ class Serial_K64F:
                     self.connectionType.append(11)     # Added 10 onto definitions used by LJM library to avoid mixing up - however can change if confusing 
                     Temp_Serial_device.close()    # Close COM Port communication once info obtained
 
-    def Connect_To_USB_Device(self, Device_Index, Serial_baudrate = 9600):
+    def Connect_To_USB_Device(self, Device_Index, Serial_baudrate = 115200):
         if(self.IsConnected):
             print("Already Connected to a Device")
             return
@@ -108,13 +108,13 @@ class Serial_K64F:
 
     _SPI_Write_Instruction = "40" # 0x40
 
-    def Hex_To_Dec(input):  # input of form "40048024"
+    def Hex_To_Dec(self, input):  # input of form "40048024"
         return int(input, 16)
     
-    def Hex_To_Bin(input): # input of form "40048024"
+    def Hex_To_Bin(self, input): # input of form "40048024"
         return bin(int(input, 16))
 
-    def Hex_To_Bytes(input): # input of form "40048024"
+    def Hex_To_Bytes(self, input): # input of form "40048024"
         return bytes.fromhex(input)
 
 
@@ -279,14 +279,41 @@ class Serial_K64F:
 mbed_Serial_Object = Serial_K64F()
 mbed_Serial_Object.List_All_Mbed_USB_Devices()
 print(mbed_Serial_Object.Num_Mbed_Devices)
-mbed_Serial_Object.Connect_To_USB_Device(0)
+mbed_Serial_Object.Connect_To_USB_Device(0, 115200)
+
 # print(mbed_Serial_Object.IsConnected)
 # print(mbed_Serial_Object.COM_PORTS[0])
 # print(mbed_Serial_Object.Serial_Device)
-print(mbed_Serial_Object.Read_32_Reg("0x40048024"))
-print(mbed_Serial_Object.Read_16_Reg("0x40048024"))
-print(mbed_Serial_Object.Read_8_Reg("0x40048024"))
-print(mbed_Serial_Object.SPI_Write(1, "04FF"))
+
+# print( mbed_Serial_Object.Read_8_Reg("0x4006A000"))
+# print( mbed_Serial_Object.Read_8_Reg("0x4006A001"))
+
+Start_time = time.time()
+for x in range(1000):
+    mbed_Serial_Object.Read_32_Reg("0x40048024")
+    # mbed_Serial_Object.Read_16_Reg("0x40048024")
+    # mbed_Serial_Object.Read_8_Reg("0x40048024")
+    # mbed_Serial_Object.SPI_Write(1, "04FF")
+    # mbed_Serial_Object.SPI_Write(1, "00112233445566778899001122334455667788990011223344556677")
+
+End_Time = time.time()
+delta = End_Time - Start_time
+print("1000 in " + (str)(round(delta, 2)) + " Seconds")
+
+# Current Response Rate = ~ 65 / second 
+# Therefore, due to Wait in Serial_Response()
+# 65 * 10ms = 65% of this time spent waiting 
+
+# Changing from 9600 to 115200 increases rate from 65 to 90 per second
+# At Response rate of 90, 90% of time is spent waiting 
+
+# Now we are using 115200, we can probably reduce wait time 
+
+
+# print(mbed_Serial_Object.Read_32_Reg("0x40048024"))
+# print(mbed_Serial_Object.Read_16_Reg("0x40048024"))
+# print(mbed_Serial_Object.Read_8_Reg("0x40048024"))
+# print(mbed_Serial_Object.SPI_Write(1, "04FF"))
 '''
 Serial_device = serial.Serial(port="COM4", baudrate=9600, bytesize=8, timeout=1, stopbits=serial.STOPBITS_ONE)
 Target_Register = "0x40048024"
