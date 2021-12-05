@@ -32,30 +32,6 @@ void CamLab_Mbed_Serial::Append_EOL_Char(int Num_Reply_Bytes)
     buf_serial[Num_Reply_Bytes - 1] = '\n';
 }
 
-// void CamLab_Mbed_Serial::Serial_Response(void){
-//     uint32_t num_in = 0;
-//     // ThisThread::sleep_for(1s);
-//     while (serial_handle->readable()) {
-//         Receive_Serial_Data(); // Wait for a given time to receive all data ?? Look for more efficient implemmentation  
-//         if ((num_in = serial_handle->read(buf_serial, sizeof(buf_serial)))) { // Check there is something other than "\n" in the buffer AKA num_1 != 0
-//             // if(buf_serial[0] == 0x30){
-//             //     if(num_in == 6){ // 1 Command byte (030), 4 address bytes (8 Hex Digits), 1 End of Line ("\n")
-//             //         Serial_Read_Register();
-//             //     }
-//             // }  
-//             if(buf_serial[0] == Read_32_Reg_Instr){
-//                 if(num_in == Read_32_Expected_Bytes){
-//                     uint32_t Address = __REV(*(uint32_t *)(buf_serial + Read_Reg_Addr_Offset));
-//                     Serial_Register_Read(Address, Num_Bytes_32_Reg);  // Read 4 bytes from Address defined in Serial Command into buf_serial
-//                     Append_EOL_Char(Read_32_Response_Bytes);
-//                     Write_Serial_Message(buf_serial, Read_32_Response_Bytes);
-//                 }
-//             }
-//         }
-
-//     }
-// }
-
 void CamLab_Mbed_Serial::Serial_Response(void){
     int num_in = 0;
     // ThisThread::sleep_for(1s);
