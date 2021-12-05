@@ -96,6 +96,27 @@ class CamLab_Mbed_Serial
 
 
 
+    /**
+     * @brief Public method used for responding to serial commands. Check if there any serial bytes availble to read, if not return nothing. 
+     * If there are bytes available, wait short period to ensure full message has arrived, then read into intermediate char ser_buff[32]. 
+     * Check the instruction (1st) byte of the received message, and compare to instructions defined in header file. As an error checking 
+     * step check that the message has an End of Line character ('\n') at the end of the expected length of message for given instruction. 
+     * Respond appropriately for the given instruction using same ser_buff array for storing the reply, and adding an '\n' to EOL. 
+     * 
+     * Command Layout: 
+     * ------------------------------------------------------------------
+     * | Instruction | Address | Extra Information (e.g. values) | '\n' | 
+     * ------------------------------------------------------------------
+     * 
+     * Response Layout: 
+     * ----------------
+     * | Value | '\n' | 
+     * ----------------
+     * 
+     */
+    void Serial_Response(void);
+
+
     // Doesn't read any of the data, simply waits for it to arrive - must be better way of ensuring we get all data 
     void Receive_Serial_Data(void); 
     
@@ -127,25 +148,7 @@ class CamLab_Mbed_Serial
      */
     void Append_EOL_Char(int Num_Reply_Bytes);
 
-    /**
-     * @brief Public method used for responding to serial commands. Check if there any serial bytes availble to read, if not return nothing. 
-     * If there are bytes available, wait short period to ensure full message has arrived, then read into intermediate char ser_buff[32]. 
-     * Check the instruction (1st) byte of the received message, and compare to instructions defined in header file. As an error checking 
-     * step check that the message has an End of Line character ('\n') at the end of the expected length of message for given instruction. 
-     * Respond appropriately for the given instruction using same ser_buff array for storing the reply, and adding an '\n' to EOL. 
-     * 
-     * Command Layout: 
-     * ------------------------------------------------------------------
-     * | Instruction | Address | Extra Information (e.g. values) | '\n' | 
-     * ------------------------------------------------------------------
-     * 
-     * Response Layout: 
-     * ----------------
-     * | Value | '\n' | 
-     * ----------------
-     * 
-     */
-    void Serial_Response(void);
+ 
 
   
     //  * first determine the 4-byte address to register of interest, which is read as 4 consecutive bytes of command in ser_buff[] offset by an 
