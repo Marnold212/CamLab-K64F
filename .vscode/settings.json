@@ -9,6 +9,16 @@
         "string": "cpp",
         "string_view": "cpp",
         "mstd_iterator": "cpp",
-        "system_error": "cpp"
+        "system_error": "cpp",
+        "atomic": "cpp",
+        "memory": "cpp",
+        "istream": "cpp",
+        "sstream": "cpp",
+        "streambuf": "cpp",
+        "typeinfo": "cpp",
+        "utility": "cpp",
+        "mstd_mutex": "cpp",
+        "initializer_list": "cpp",
+        "cstddef": "cpp"
     }
 }
