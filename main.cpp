@@ -30,6 +30,8 @@ using namespace std;
 
 
 BufferedSerial  serial_port(USBTX, USBRX);
+SPI spi_port(D11, D12, D13); // mosi, miso, sclk
+
 // BufferedSerial class is NonCopyable, therefore must pass pointer to Custom Class to use functionality 
 char buff[32];
 int main(){
@@ -41,7 +43,7 @@ int main(){
     buff[5] = '\n';
 
     printf("Testing Reg Read: uint32_t: %lx uint_8t: %c\n", *(uint32_t * )(0x40048024), *(uint *)(0x40048024));
-    CamLab_Mbed_Serial Test_Class(&serial_port);
+    CamLab_Mbed_Serial Test_Class(&serial_port, &spi_port);
     // Test_Class.Write_Serial_Message(buff, 6);
     while(1){
         Test_Class.Serial_Response();

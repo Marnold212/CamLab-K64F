@@ -1,4 +1,5 @@
 from ctypes.wintypes import HANDLE
+from io import RawIOBase
 from serial.serialutil import SerialException
 import serial.tools.list_ports as port_list
 import serial
@@ -97,12 +98,15 @@ class Serial_K64F:
     _Read_8_Reg_Instruction = "32" # 0x32
     _Expected_Bytes_Read_8_Reg = 2 # 1 byte + '/n'
 
+    # Instructions + Expected Number of Bytes Returned 
     _Write_32_Reg_Instruction = "33" # 0x33
     _Expected_Bytes_Write_32_Reg = 5 # 4 bytes + '/n'
     _Write_16_Reg_Instruction = "34" # 0x34
     _Expected_Bytes_Write_16_Reg = 3 # 2 bytes + '/n'
     _Write_8_Reg_Instruction = "35" # 0x35
     _Expected_Bytes_Write_8_Reg = 2 # 1 byte + '/n'
+
+    _SPI_Write_Instruction = "40" # 0x40
 
     def Hex_To_Dec(input):  # input of form "40048024"
         return int(input, 16)
@@ -203,8 +207,6 @@ class Serial_K64F:
         # Expected_Bytes inludes the '\n' we expect at end of communication
         
         byte_Command = (b'%b%b\n' % (bytes.fromhex(Instruction), bytes.fromhex(Target_Address)))   
-        print(byte_Command, Expected_Bytes)
-        print(len(byte_Command))
         return self._Serial_Command_Response(byte_Command, Expected_Bytes)
 
     def _Serial_Write(self, Instruction, Target_Address, Hex_Value, Expected_Bytes):
@@ -216,6 +218,29 @@ class Serial_K64F:
         byte_Command = (b'%b%b%b\n' % (bytes.fromhex(Instruction), bytes.fromhex(Target_Address), bytes.fromhex(Hex_Value)))
         return self._Serial_Command_Response(byte_Command, Expected_Bytes)
 
+    # SPI Message must be given in hex form e.g. (24, A7, 08, 00, FF) -> 24A70800FF etc. 
+    def SPI_Write(self, SPI_Device, Message):
+        
+        if not self.IsConnected:
+            raise Exception ("No connected mbed Device")
+        if(len(Message) % 2 != 0):
+            raise Exception ("Invalid SPI Message")
+        Bytes_Message = len(Message) / 2 # Length of SPI Message, which is also returned as an error checking step 
+        Expected_Bytes_Returned = (int)(Bytes_Message) + 1  # EOL, Message
+        SPI_Message = self._Serial_SPI_Write(self._SPI_Write_Instruction, SPI_Device, Bytes_Message, Message, Expected_Bytes_Returned)
+        # Reg_Contents = self._Serial_Read(self._Read_8_Reg_Instruction, Target_Address, self._Expected_Bytes_Read_8_Reg)
+        # if(len(Reg_Contents) != 2*(self._Expected_Bytes_Read_8_Reg - 1)): # Expect 8 bits returned 
+        #     raise Exception ("0x32 Issue with Returned Data")
+        if(SPI_Message.upper() != Message.upper()):
+            print(SPI_Message.upper(), Message.upper())
+            raise Exception ("0x40 Issue with Returned Data")
+        return SPI_Message.upper() # Hex Form Still 
+
+    def _Serial_SPI_Write(self, Instruction, SPI_Device, Len_Message, Message, Expected_Bytes):
+
+        byte_Command = b'%b%b%b%b\n' % (bytes.fromhex(Instruction), (int)(SPI_Device).to_bytes(1, byteorder='big'), (int)(Len_Message).to_bytes(1, byteorder='big'), bytes.fromhex(Message))
+        return self._Serial_Command_Response(byte_Command, Expected_Bytes)
+
     def _Serial_Command_Response(self, byte_Command, Expected_Bytes):
         try:
             num1 = self.Serial_Device.write(byte_Command)   # num1 is number of bytes sent 
@@ -223,7 +248,6 @@ class Serial_K64F:
             raise Exception ("Error writing to mbed Serial Device")
         serialString = "" # Used to hold data coming over UART
         # NEED TO ADD A TIMEOUT TO FOLLOWING LINE
-
 
         # Removing while(1) should allow the read(size=Expected_Bytes) to naturally timeout after configured time 
 
@@ -242,6 +266,7 @@ class Serial_K64F:
         serialString = serialString.hex()  # Decode bytes into raw hex values
         # if(serialString[Expected_Bytes-1] != 10):    # 10 = 0x0a = '\n' LF character in Ascii 
         if(serialString[-2: ] != '0a'):    # 10 = 0x0a = '\n' LF character in Ascii 
+            print(serialString)
             raise Exception ("Issue with Received Data") # Need to implement proper error handling
         else:
             return serialString[:-2]
@@ -261,6 +286,7 @@ mbed_Serial_Object.Connect_To_USB_Device(0)
 print(mbed_Serial_Object.Read_32_Reg("0x40048024"))
 print(mbed_Serial_Object.Read_16_Reg("0x40048024"))
 print(mbed_Serial_Object.Read_8_Reg("0x40048024"))
+print(mbed_Serial_Object.SPI_Write(1, "04FF"))
 '''
 Serial_device = serial.Serial(port="COM4", baudrate=9600, bytesize=8, timeout=1, stopbits=serial.STOPBITS_ONE)
 Target_Register = "0x40048024"

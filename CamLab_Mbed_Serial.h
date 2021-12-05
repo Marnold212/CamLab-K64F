@@ -31,6 +31,7 @@
 #define Write_32_Reg_Instr                          0x33
 #define Write_16_Reg_Instr                          0x34
 #define Write_8_Reg_Instr                           0x35
+#define SPI_Message_Instr                           0x40
 
 /** Expected Received Bytes */
 /* Expected number of received bytes expected for a given instruction including End of Line char */
@@ -54,8 +55,12 @@
 /** Address Offsets */
 /* Define the Offset of serial buffer for Register Address for various commands */
 
-#define Read_Reg_Addr_Offset                    1
-#define Write_Reg_Addr_Offset                   1
+#define Read_Reg_Addr_Offset                    Num_Bytes_Instruction
+#define Write_Reg_Addr_Offset                   Num_Bytes_Instruction
+
+#define SPI_Message_Offset                      Num_Bytes_Instruction + 2 // 1 Byte for instruction + 1 byte for length of SPI Message + 1 byte for Device selection  
+
+
 
 /* ----------------------------------------------------------------------------
    -- CamLab_Mbed_Serial Communication Class 
@@ -68,14 +73,19 @@ class CamLab_Mbed_Serial
 {
     public:
 
+    enum SPIDeviceCS{ 
+        SPI_Device_1 = 15  /* Note on Port D - D15 */             
+    };
+
     // Consider using mbed ByteBuffer class ?
     char buf_serial[MAXIMUM_BUFFER_SIZE] = "{0}"; /* Buffer for Serial Communication - limited to 32 bytes */
     BufferedSerial *serial_handle;
+    SPI *spi_handle;
 
     // static BufferedSerial serial_port(USBTX, USBRX); /* Stores object for Serial Communication */
     // Use a list iniitialization
     // BufferedSerial is a NonCopyable Class 
-    CamLab_Mbed_Serial(BufferedSerial *serial_pointer) : serial_handle(serial_pointer){
+    CamLab_Mbed_Serial(BufferedSerial *serial_pointer, SPI *spi_pointer) : serial_handle(serial_pointer), spi_handle(spi_pointer) {
         
         Init_Serial(); 
     
@@ -143,7 +153,7 @@ class CamLab_Mbed_Serial
      
 
     /**
-     * @brief If the received command instruction (1st) byte indicates a request to read a device register of a specified size, 
+     * @brief PRIVATE If the received command instruction (1st) byte indicates a request to read a device register of a specified size, 
      * and the value in the address is entered into the start of the ser_buff[] array. Note that the byte order is reversed from 
      * the format used by mbed device (Little Endian) so that the returned value has MSB at left and LSB at right. 
      * ## ONLY USE 16 OR 8 BIT READS IF SECTIONS OF REGISTER ARE READ PROTECTED, otherwise you can easily run into issues where you 
@@ -178,6 +188,39 @@ class CamLab_Mbed_Serial
     void Read_16_Reg_Response(void);
 
     void Read_8_Reg_Response(void);
+
+    /**
+     * @brief PRIVATE If the received command instruction (1st) byte indicates a request to write to a device register of a specified size, 
+     * and the value in the address is entered into the start of the ser_buff[] array. Note that the byte order is reversed from 
+     * the format used by mbed device (Little Endian) so that the returned value has MSB at left and LSB at right. 
+     * Also writes the new value back to the PC as an error checking step 
+     * 
+     * ## ONLY USE 16 OR 8 BIT Writes IF SECTIONS OF REGISTER ARE READ PROTECTED, otherwise you can easily run into issues where you 
+     * are not reading the correct bytes due to the reversing of orders that are occuring. Try and always read a 32 bit aligned array 
+     * as specified in datasheet for K64F where possible.
+     * 
+     * @param Addr Address of LEFTMOST byte of register in question - must be a uint32_t (Obtain from command via __REV(*(uint32_t *)(buf_serial + Read_Reg_Addr_Offset)))
+     * @param size Size of address being read: 8;16;32 bits (Use definitions from header file) - Use 32 unless sections of target are read protected to ensure correct byte order. 
+     * @param value New value to be stored in address 
+     */
+    void Serial_Register_Write(uint32_t Addr, int size, uint32_t value);
+
+    void Write_32_Reg_Response(void);
+
+    void Write_16_Reg_Response(void);
+
+    void Write_8_Reg_Response(void);
+
+    /**
+     * @brief Method for manually sending custom messages over SPI 
+     * Form of Instruction: | Instruction Byte | Device | Len_Message | Message Bytes | '\n' | 
+     * 
+     * @param Device Each Channel will have a corresponding Chip Select (CS) pin predefined e.g. 1 = D15
+     * @param Len_Message Number of bytes to send as SPI message 
+     */
+    void SPI_Message_Response(SPI *spi_handle, int Device, int Len_Message);
+    
+
 };
 
 #endif

@@ -14,7 +14,7 @@ void CamLab_Mbed_Serial::Init_Serial(void){
 }
 
 void CamLab_Mbed_Serial::Receive_Serial_Data(void){ // Look for more efficient implemmentation 
-    ThisThread::sleep_for(10ms); // Needed to get full input - 10ms just arbitrary value
+    ThisThread::sleep_for(10ms); // Needed to get full input - 10ms just arbitrary value - but errors if only 1ms
     
 }
 
@@ -76,6 +76,10 @@ void CamLab_Mbed_Serial::Serial_Response(void){
             else if(buf_serial[0] == Read_8_Reg_Instr && num_in == Read_8_Expected_Bytes){
                 Read_8_Reg_Response();
             }
+
+            else if (buf_serial[0] == SPI_Message_Instr && num_in == (Num_Bytes_Instruction + 2 + buf_serial[2] + Num_Bytes_EOL)){
+                SPI_Message_Response(spi_handle, buf_serial[1], buf_serial[2]);
+            }
         }
     }
 }
@@ -119,6 +123,23 @@ void CamLab_Mbed_Serial::Serial_Register_Read(uint32_t Addr, int size = Num_Byte
     else if(size == Num_Bytes_8_Reg){
         *(uint8_t *)(buf_serial) = *(uint8_t *)(Addr);  // Don't need to reverse byte order for a single byte 
     }    
+}
+
+void CamLab_Mbed_Serial::SPI_Message_Response(SPI *spi_handle, int Device, int Len_Message)
+{
+    if(Device == 1){
+        //SPIDeviceCS CS  = Device1;
+        GPIOD->PCOR |= (1U << SPI_Device_1); // Set CS for pin corresponding to Device1 to 0  
+        for (int i = 0; i < Len_Message; i++) // Write contents of SPI message, depending on length of message
+        {
+            spi_handle->write(buf_serial[SPI_Message_Offset + i]);
+            buf_serial[0 + i] = buf_serial[SPI_Message_Offset + i]; // Write SPI message back to PC for error checking 
+        }
+        GPIOD->PSOR |= (1U << SPI_Device_1); // Set CS for pin corresponding to Device1 to 1
+    }
+    int Serial_Return_Len = Len_Message + 1;
+    Append_EOL_Char(Serial_Return_Len);
+    Write_Serial_Message(buf_serial, Serial_Return_Len);
 }
 
 // void Serial_Read_Register(void){
