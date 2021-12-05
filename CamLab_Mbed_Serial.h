@@ -154,7 +154,7 @@ class CamLab_Mbed_Serial
      * @param Addr Address of LEFTMOST byte of register in question - must be a uint32_t (Obtain from command via __REV(*(uint32_t *)(buf_serial + Read_Reg_Addr_Offset)))
      * @param size Size of address being read: 8;16;32 bits (Use definitions from header file) - Use 32 unless sections of target are read protected to ensure correct byte order. 
      */
-    void Serial_Register_Read(uint32_t Addr, int size = Num_Bytes_32_Reg);
+    void Serial_Register_Read(uint32_t Addr, int size);
     
 
     /**
