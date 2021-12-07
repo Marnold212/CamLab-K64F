@@ -150,7 +150,7 @@ class Serial_K64F:
         #     raise Exception ("0x34 Issue with Returned Data")
         if(Reg_Contents != Hex_Value):
             # raise Exception ("0x34 Issue with Returned Data")
-            print("0x334Non-Matching Response (Could be a Set Register)")
+            print("0x34 Non-Matching Response (Could be a Set Register)")
         return Reg_Contents  # Hex Form 
 
     def Write_8_Reg(self, Target_Address, Hex_Value):
