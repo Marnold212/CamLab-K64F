@@ -19,6 +19,12 @@
         "utility": "cpp",
         "mstd_mutex": "cpp",
         "initializer_list": "cpp",
-        "cstddef": "cpp"
+        "cstddef": "cpp",
+        "optional": "cpp",
+        "ostream": "cpp",
+        "ratio": "cpp",
+        "functional": "cpp",
+        "tuple": "cpp",
+        "type_traits": "cpp"
     }
 }

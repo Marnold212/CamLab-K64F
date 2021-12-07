@@ -74,7 +74,7 @@ class CamLab_Mbed_Serial
     public:
 
     enum SPIDeviceCS{ 
-        SPI_Device_1 = 15  /* Note on Port D - D15 */             
+        SPI_Device_1 = 24  /* D15 = PTE24 so GPIOE pin 24 */             
     };
 
     // Consider using mbed ByteBuffer class ?
@@ -88,12 +88,17 @@ class CamLab_Mbed_Serial
     CamLab_Mbed_Serial(BufferedSerial *serial_pointer, SPI *spi_pointer) : serial_handle(serial_pointer), spi_handle(spi_pointer) {
         
         Init_Serial(); 
+        Init_SPI();
     
     }; /* Upon construction initialise serial channel */
 
     void Init_Serial(void); /* Initialises the Serial Communication object */
 
-
+    /**
+     * @brief Device 1 - Pin D15 - High by default (Set high at initialisation)
+     * 
+     */
+    void Init_SPI(void); /* Initialise the CS pins required for SPI communication */
 
 
     /**

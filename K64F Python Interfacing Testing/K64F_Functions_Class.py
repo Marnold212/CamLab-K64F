@@ -129,10 +129,11 @@ class Serial_K64F:
         Target_Address = Target_Address[2:] # Remove "0x"
         Hex_Value = Hex_Value[2:] # Remove "0x"
         Reg_Contents = self._Serial_Write(self._Write_32_Reg_Instruction, Target_Address, Hex_Value, self._Expected_Bytes_Write_32_Reg)
-        if(len(Reg_Contents) != 2*(self._Expected_Bytes_Write_32_Reg - 1)): # Expect 32 bits returned 
-            raise Exception ("0x33 Issue with Returned Data")
+        # if(len(Reg_Contents) != 2*(self._Expected_Bytes_Write_32_Reg - 1)): # Expect 32 bits returned 
+        #     raise Exception ("0x33 Issue with Returned Data")
         if(Reg_Contents != Hex_Value): # We expect to recieve the same value we wrote to an address on the mbed
-            raise Exception ("0x33 Issue with Returned Data")
+            # raise Exception ("0x33 Issue with Returned Data")
+            print("0x33 Non-Matching Response (Could be a Set Register)")
         return Reg_Contents  # Hex Form 
 
     def Write_16_Reg(self, Target_Address, Hex_Value):
@@ -145,10 +146,11 @@ class Serial_K64F:
         Target_Address = Target_Address[2:] # Remove "0x"
         Hex_Value = Hex_Value[2:] # Remove "0x"
         Reg_Contents = self._Serial_Write(self._Write_16_Reg_Instruction, Target_Address, Hex_Value, self._Expected_Bytes_Write_16_Reg)
-        if(len(Reg_Contents) != 2*(self._Expected_Bytes_Write_16_Reg - 1)): # Expect 32 bits returned (subtract the EOL byte)
-            raise Exception ("0x34 Issue with Returned Data")
+        # if(len(Reg_Contents) != 2*(self._Expected_Bytes_Write_16_Reg - 1)): # Expect 32 bits returned (subtract the EOL byte)
+        #     raise Exception ("0x34 Issue with Returned Data")
         if(Reg_Contents != Hex_Value):
-            raise Exception ("0x34 Issue with Returned Data")
+            # raise Exception ("0x34 Issue with Returned Data")
+            print("0x334Non-Matching Response (Could be a Set Register)")
         return Reg_Contents  # Hex Form 
 
     def Write_8_Reg(self, Target_Address, Hex_Value):
@@ -161,10 +163,11 @@ class Serial_K64F:
         Target_Address = Target_Address[2:] # Remove "0x"
         Hex_Value = Hex_Value[2:] # Remove "0x"
         Reg_Contents = self._Serial_Write(self._Write_8_Reg_Instruction, Target_Address, Hex_Value, self._Expected_Bytes_Write_8_Reg)
-        if(len(Reg_Contents) != 2*(self._Expected_Bytes_Write_8_Reg - 1)): # Expect 32 bits returned (subtract the EOL byte)
-            raise Exception ("0x35 Issue with Returned Data")
+        # if(len(Reg_Contents) != 2*(self._Expected_Bytes_Write_8_Reg - 1)): # Expect 32 bits returned (subtract the EOL byte)
+        #     raise Exception ("0x35 Issue with Returned Data")
         if(Reg_Contents != Hex_Value):
-            raise Exception ("0x35 Issue with Returned Data")
+            # raise Exception ("0x35 Issue with Returned Data")
+            print("0x35 Non-Matching Response (Could be a Set Register)")
         return Reg_Contents  # Hex Form 
 
     # Uses private function - returns data contained in Register in hex form 
@@ -288,17 +291,17 @@ mbed_Serial_Object.Connect_To_USB_Device(0, 115200)
 # print( mbed_Serial_Object.Read_8_Reg("0x4006A000"))
 # print( mbed_Serial_Object.Read_8_Reg("0x4006A001"))
 
-Start_time = time.time()
-for x in range(1000):
-    mbed_Serial_Object.Read_32_Reg("0x40048024")
-    # mbed_Serial_Object.Read_16_Reg("0x40048024")
-    # mbed_Serial_Object.Read_8_Reg("0x40048024")
-    # mbed_Serial_Object.SPI_Write(1, "04FF")
-    # mbed_Serial_Object.SPI_Write(1, "00112233445566778899001122334455667788990011223344556677")
+# Start_time = time.time()
+# for x in range(1000):
+#     mbed_Serial_Object.Read_32_Reg("0x40048024")
+#     # mbed_Serial_Object.Read_16_Reg("0x40048024")
+#     # mbed_Serial_Object.Read_8_Reg("0x40048024")
+#     # mbed_Serial_Object.SPI_Write(1, "04FF")
+#     # mbed_Serial_Object.SPI_Write(1, "00112233445566778899001122334455667788990011223344556677")
 
-End_Time = time.time()
-delta = End_Time - Start_time
-print("1000 in " + (str)(round(delta, 2)) + " Seconds")
+# End_Time = time.time()
+# delta = End_Time - Start_time
+# print("1000 in " + (str)(round(delta, 2)) + " Seconds")
 
 # Current Response Rate = ~ 65 / second 
 # Therefore, due to Wait in Serial_Response()
@@ -309,11 +312,22 @@ print("1000 in " + (str)(round(delta, 2)) + " Seconds")
 
 # Now we are using 115200, we can probably reduce wait time 
 
+print(mbed_Serial_Object.Read_32_Reg("0x40048054"))
+print(mbed_Serial_Object.Read_32_Reg("0x40048058"))
+print(mbed_Serial_Object.Read_32_Reg("0x4004805C"))
+print(mbed_Serial_Object.Read_32_Reg("0x40048060"))
+
 
 # print(mbed_Serial_Object.Read_32_Reg("0x40048024"))
 # print(mbed_Serial_Object.Read_16_Reg("0x40048024"))
 # print(mbed_Serial_Object.Read_8_Reg("0x40048024"))
-# print(mbed_Serial_Object.SPI_Write(1, "04FF"))
+# print(mbed_Serial_Object.SPI_Write(1, "3FFF"))
+# print(mbed_Serial_Object.Write_32_Reg("0x400FF108", "0x00800000"))
+# print(mbed_Serial_Object.Read_32_Reg("0x400FF114"))
+# print(mbed_Serial_Object.Write_32_Reg("0x400FF114", "0x00FF00FF"))
+# print(mbed_Serial_Object.Read_32_Reg("0x400FF114"))
+# print(mbed_Serial_Object.Write_32_Reg("0x400FF108", "0xFFFFFFFF"))
+
 '''
 Serial_device = serial.Serial(port="COM4", baudrate=9600, bytesize=8, timeout=1, stopbits=serial.STOPBITS_ONE)
 Target_Register = "0x40048024"

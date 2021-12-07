@@ -13,6 +13,12 @@ void CamLab_Mbed_Serial::Init_Serial(void){
     );
 }
 
+void CamLab_Mbed_Serial::Init_SPI(void){
+    // For now use mbed code to initialise all clocks/registers 
+    DigitalOut Device_1_CS(D15);
+    Device_1_CS = 1;
+}
+
 void CamLab_Mbed_Serial::Receive_Serial_Data(void){ // Look for more efficient implemmentation 
     // ThisThread::sleep_for(4ms); // Needed to get full input - 10ms just arbitrary value - but errors if only 1ms
     wait_us(3500);  // Wait time in us for 8*32 bits to arrive at a rate of 115200 
@@ -59,9 +65,20 @@ void CamLab_Mbed_Serial::Serial_Response(void){
                 Read_8_Reg_Response();
             }
 
+            else if(buf_serial[0] == Write_32_Reg_Instr && num_in == Write_32_Expected_Bytes){
+                Write_32_Reg_Response();
+            }
+            else if(buf_serial[0] == Write_16_Reg_Instr && num_in == Write_16_Expected_Bytes){
+                Write_16_Reg_Response();
+            }
+            else if(buf_serial[0] == Write_8_Reg_Instr && num_in == Write_8_Expected_Bytes){
+                Write_8_Reg_Response();
+            }
+            
             else if (buf_serial[0] == SPI_Message_Instr && num_in == (Num_Bytes_Instruction + 2 + buf_serial[2] + Num_Bytes_EOL)){
                 SPI_Message_Response(spi_handle, buf_serial[1], buf_serial[2]);
             }
+            
         }
     }
 }
@@ -92,6 +109,49 @@ void CamLab_Mbed_Serial::Read_8_Reg_Response(void)
 }
 
 
+void CamLab_Mbed_Serial::Write_32_Reg_Response(void)
+{
+    uint32_t _Address = __REV(*(uint32_t *)(buf_serial + Read_Reg_Addr_Offset));
+    uint32_t New_Value = __REV(*(uint32_t *)(buf_serial + Read_Reg_Addr_Offset + Num_Bytes_Reg_Addr));
+    Serial_Register_Write(_Address, Num_Bytes_32_Reg, New_Value);  // Read 4 bytes from Address defined in Serial Command into buf_serial
+    Append_EOL_Char(Write_32_Response_Bytes);
+    Write_Serial_Message(buf_serial, Write_32_Response_Bytes);
+}
+
+void CamLab_Mbed_Serial::Write_16_Reg_Response(void)
+{
+    uint32_t Address = __REV(*(uint32_t *)(buf_serial + Read_Reg_Addr_Offset));
+    uint16_t New_Value = __REVSH(*(uint32_t *)(buf_serial + Read_Reg_Addr_Offset + Num_Bytes_Reg_Addr));
+    Serial_Register_Write(Address, Num_Bytes_16_Reg, New_Value);  // Read 4 bytes from Address defined in Serial Command into buf_serial
+    Append_EOL_Char(Write_16_Response_Bytes);
+    Write_Serial_Message(buf_serial, Write_16_Response_Bytes);
+}
+
+void CamLab_Mbed_Serial::Write_8_Reg_Response(void)
+{
+    uint32_t Address = __REV(*(uint32_t *)(buf_serial + Read_Reg_Addr_Offset));
+    uint8_t New_Value = *(uint32_t *)(buf_serial + Read_Reg_Addr_Offset + Num_Bytes_Reg_Addr);
+    Serial_Register_Write(Address, Num_Bytes_8_Reg, New_Value);  // Read 4 bytes from Address defined in Serial Command into buf_serial
+    Append_EOL_Char(Write_8_Response_Bytes);
+    Write_Serial_Message(buf_serial, Write_8_Response_Bytes);
+}
+
+void CamLab_Mbed_Serial::Serial_Register_Write(uint32_t Addr, int size, uint32_t value)
+{ // Same as Read, but first write the value to the requested address   
+    if(size == Num_Bytes_32_Reg){
+        *(uint32_t *)(Addr) = value; 
+        *(uint32_t *)(buf_serial) = __REV(*(uint32_t *)(Addr));
+    }
+    else if(size == Num_Bytes_16_Reg){
+        *(uint16_t *)(Addr) = value; 
+        *(uint16_t *)(buf_serial) = __REVSH(*(uint16_t *)(Addr));  // Use different function to reverse 16 bit value 
+    }
+    else if(size == Num_Bytes_8_Reg){
+        *(uint8_t *)(Addr) = value; 
+        *(uint8_t *)(buf_serial) = *(uint8_t *)(Addr);  // Don't need to reverse byte order for a single byte 
+    }    
+
+}
 
 
 void CamLab_Mbed_Serial::Serial_Register_Read(uint32_t Addr, int size = Num_Bytes_32_Reg)
@@ -111,13 +171,13 @@ void CamLab_Mbed_Serial::SPI_Message_Response(SPI *spi_handle, int Device, int L
 {
     if(Device == 1){
         //SPIDeviceCS CS  = Device1;
-        GPIOD->PCOR |= (1U << SPI_Device_1); // Set CS for pin corresponding to Device1 to 0  
+        GPIOE->PCOR = (1U << SPI_Device_1); // Set CS for pin corresponding to Device1 to 0  
         for (int i = 0; i < Len_Message; i++) // Write contents of SPI message, depending on length of message
         {
-            spi_handle->write(buf_serial[SPI_Message_Offset + i]);
             buf_serial[0 + i] = buf_serial[SPI_Message_Offset + i]; // Write SPI message back to PC for error checking 
+            spi_handle->write(buf_serial[SPI_Message_Offset + i]);
         }
-        GPIOD->PSOR |= (1U << SPI_Device_1); // Set CS for pin corresponding to Device1 to 1
+        GPIOE->PSOR = (1U << SPI_Device_1); // Set CS for pin corresponding to Device1 to 1
     }
     int Serial_Return_Len = Len_Message + 1;
     Append_EOL_Char(Serial_Return_Len);
