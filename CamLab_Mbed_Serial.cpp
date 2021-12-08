@@ -79,10 +79,26 @@ void CamLab_Mbed_Serial::Serial_Response(void){
                 SPI_Message_Response(spi_handle, buf_serial[1], buf_serial[2]);
             }
             
+            else if(buf_serial[0] == Read_128_Reg_Instr && num_in == Read_128_Expected_Bytes){
+                Read_128_Reg_Response();
+            }
+            
         }
     }
 }
 
+void CamLab_Mbed_Serial::Read_128_Reg_Response(void)
+{
+    uint32_t Addr = __REV(*(uint32_t *)(buf_serial + Read_Reg_Addr_Offset));
+    for (int i = 0; i < 4; i++)
+    {
+        *(uint32_t *)(buf_serial + (4*i)) = __REV(*(uint32_t *)(Addr));
+        Addr += 0x4; 
+    }
+    
+    Append_EOL_Char(Read_128_Response_Bytes);
+    Write_Serial_Message(buf_serial, Read_128_Response_Bytes);
+}
 
 void CamLab_Mbed_Serial::Read_32_Reg_Response(void)
 {

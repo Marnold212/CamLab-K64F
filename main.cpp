@@ -7,20 +7,23 @@ BufferedSerial  serial_port(USBTX, USBRX);
 SPI spi_port(D11, D12, D13); // mosi, miso, sclk
 
 // BufferedSerial class is NonCopyable, therefore must pass pointer to Custom Class to use functionality 
-char buff[32];
 int main(){
-    buff[0] = 'H';
-    buff[1] = 'e';
-    buff[2] = 'l';
-    buff[3] = 'l';
-    buff[4] = 'o';
-    buff[5] = '\n';
+    // Within SRAM of K64F : 0x1FFF_0000 to 0x2002_FFFF 
+    uint32_t *Dummy_Reg_Ptr_0 = (uint32_t *)0x1FFF0000U;
+    uint32_t *Dummy_Reg_Ptr_1 = (uint32_t *)0x1FFF0004U;
+    uint32_t *Dummy_Reg_Ptr_2 = (uint32_t *)0x1FFF0008U;
+    uint32_t *Dummy_Reg_Ptr_3 = (uint32_t *)0x1FFF000CU;
+    *(Dummy_Reg_Ptr_0) = 60000;
+    *(Dummy_Reg_Ptr_1) = 6000000;
+    *(Dummy_Reg_Ptr_2) = 1234567;
+    *(Dummy_Reg_Ptr_3) = 0;
 
     // printf("Testing Reg Read: uint32_t: %lx uint_8t: %c\n", *(uint32_t * )(0x40048024), *(uint *)(0x40048024));
-    printf("Testing Reg Read: uint32_t: %lx \n", *(uint32_t * )(0x40048054));
-    printf("Testing Reg Read: uint32_t: %lx \n", *(uint32_t * )(0x40048058));
-    printf("Testing Reg Read: uint32_t: %lx \n", *(uint32_t * )(0x4004805C));
-    printf("Testing Reg Read: uint32_t: %lx \n", *(uint32_t * )(0x40048060));
+    
+    // printf("Testing Reg Read: uint32_t: %lx \n", *(uint32_t * )(0x40048054));
+    // printf("Testing Reg Read: uint32_t: %lx \n", *(uint32_t * )(0x40048058));
+    // printf("Testing Reg Read: uint32_t: %lx \n", *(uint32_t * )(0x4004805C));
+    // printf("Testing Reg Read: uint32_t: %lx \n", *(uint32_t * )(0x40048060));
     
     CamLab_Mbed_Serial Test_Class(&serial_port, &spi_port);
 

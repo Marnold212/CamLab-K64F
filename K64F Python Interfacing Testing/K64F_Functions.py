@@ -1,4 +1,5 @@
 from ctypes.wintypes import HANDLE
+from serial.serialutil import SerialException
 import serial.tools.list_ports as port_list
 import serial
 import time
@@ -74,7 +75,11 @@ _Expected_Bytes_Read_16_Reg = 3 # 2 bytes + '/n'
 _Read_8_Reg_Instruction = "32" # 0x32
 _Expected_Bytes_Read_8_Reg = 2 # 1 byte + '/n'
 
-    # Instructions + Expected Number of Bytes Returned 
+# Intended for reading 8 channel 16 bit ADC readings (4 x 32 bits)
+_Read_128_Reg_Instruction = "36" # 036
+_Expected_Bytes_Read_128_Reg = 17 # 16 bit (2 bytes) x 8channels + '\n'
+
+# Instructions + Expected Number of Bytes Returned 
 _Write_32_Reg_Instruction = "33" # 0x33
 _Expected_Bytes_Write_32_Reg = 5 # 4 bytes + '/n'
 _Write_16_Reg_Instruction = "34" # 0x34
@@ -147,6 +152,18 @@ def Write_8_Reg(Serial_Device, Target_Address, Hex_Value):
     return Reg_Contents  # Hex Form 
 
 # Uses private function - returns data contained in Register in hex form 
+def Read_128_Reg(Serial_Device, Target_Address): # Target_Address in form of "0x40048024"
+    # if not self.IsConnected:
+    #     raise Exception ("No connected mbed Device")
+    if(len(Target_Address) != 10 or not Target_Address.startswith("0x")):
+        raise Exception ("Register Address should be 4 bytes/8 hex digits long and be in format 0x00000000")
+    Target_Address = Target_Address[2:]
+    Reg_Contents = _Serial_Read(Serial_Device, _Read_128_Reg_Instruction, Target_Address, _Expected_Bytes_Read_128_Reg)
+    if(len(Reg_Contents) != 2*(_Expected_Bytes_Read_128_Reg - 1)): # Expect 32 bits returned 
+        raise Exception ("0x36 Issue with Returned Data")
+    return Reg_Contents  # Hex Form 
+
+# Uses private function - returns data contained in Register in hex form 
 def Read_32_Reg(Serial_Device, Target_Address): # Target_Address in form of "0x40048024"
     # if not self.IsConnected:
     #     raise Exception ("No connected mbed Device")
@@ -197,6 +214,19 @@ def _Serial_Write(Serial_Device, Instruction, Target_Address, Hex_Value, Expecte
     byte_Command = (b'%b%b%b\n' % (bytes.fromhex(Instruction), bytes.fromhex(Target_Address), bytes.fromhex(Hex_Value)))
     return _Serial_Command_Response(Serial_Device, byte_Command, Expected_Bytes)
 
+
+# Returns a list of the raw 16 bit unsigned values from ADC channels 0-7
+def Read_8_ADC_U16_Values(Serial_Device, Target_Address):
+    if(len(Target_Address) != 10 or not Target_Address.startswith("0x")):
+        raise Exception ("Register Address should be 4 bytes/8 hex digits long and be in format 0x00000000")
+    raw_data = Read_128_Reg(Serial_Device, Target_Address)
+    data = []
+    for x in range(8):
+        data.append(Hex_To_Dec(raw_data[(4*x) + 0 : (4*x) + 4]))
+    return data
+
+def Convert_ADC_Raw(Raw_Reading, ADC_Resolution, ADC_Max_Voltage, ADC_Min_Voltage):
+        return Raw_Reading / (2. ** ADC_Resolution) * (ADC_Max_Voltage - ADC_Min_Voltage) + ADC_Min_Voltage
 
 # SPI Message must be given in hex form e.g. (24, A7, 08, 00, FF) -> 24A70800FF etc. 
 def SPI_Write(Serial_Device, SPI_Device, Message):
@@ -263,10 +293,21 @@ if __name__ == "__main__":
 
     serial_port = serial.Serial(port="COM4", baudrate=115200, bytesize=8, timeout=1, stopbits=serial.STOPBITS_ONE)
 
-    print(Read_32_Reg(serial_port, "0x40048054"))
-    print(Read_32_Reg(serial_port, "0x40048058"))
-    print(Read_32_Reg(serial_port, "0x4004805C"))
-    print(Read_32_Reg(serial_port, "0x40048060"))
+    # print(Read_32_Reg(serial_port, "0x40048054"))
+    # print(Read_32_Reg(serial_port, "0x40048058"))
+    # print(Read_32_Reg(serial_port, "0x4004805C"))
+    # print(Read_32_Reg(serial_port, "0x40048060"))
+
+    # print(Read_32_Reg(serial_port, "0x1FFF0000"))
+    # print(Read_32_Reg(serial_port, "0x1FFF0004"))
+    # print(Read_32_Reg(serial_port, "0x1FFF0008"))
+    # print(Read_32_Reg(serial_port, "0x1FFF000C"))
+
+    raw_data = Read_8_ADC_U16_Values(serial_port, "0x1FFF0000")
+    data = []
+    for x in range(8):
+        data.append( Convert_ADC_Raw(raw_data[x], 16, 5, 0))
+    print(data)
 
 # Serial_device = serial.Serial(port="COM4", baudrate=9600, bytesize=8, timeout=1, stopbits=serial.STOPBITS_ONE)
 # Target_Register = "0x40048024"

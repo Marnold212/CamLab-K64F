@@ -31,10 +31,12 @@
 #define Write_32_Reg_Instr                          0x33
 #define Write_16_Reg_Instr                          0x34
 #define Write_8_Reg_Instr                           0x35
+#define Read_128_Reg_Instr                          0x36
 #define SPI_Message_Instr                           0x40
 
 /** Expected Received Bytes */
 /* Expected number of received bytes expected for a given instruction including End of Line char */
+#define Read_128_Expected_Bytes                 Num_Bytes_Instruction + Num_Bytes_Reg_Addr + Num_Bytes_EOL  
 #define Read_32_Expected_Bytes                  Num_Bytes_Instruction + Num_Bytes_Reg_Addr + Num_Bytes_EOL     
 #define Read_16_Expected_Bytes                  Num_Bytes_Instruction + Num_Bytes_Reg_Addr + Num_Bytes_EOL  
 #define Read_8_Expected_Bytes                   Num_Bytes_Instruction + Num_Bytes_Reg_Addr + Num_Bytes_EOL  
@@ -45,6 +47,7 @@
 /** Expected Replied Bytes */
 /* Expected number of bytes sent as reply to a given instruction including End of Line char */
 
+#define Read_128_Response_Bytes                 (4 * Num_Bytes_32_Reg) + Num_Bytes_EOL
 #define Read_32_Response_Bytes                  Num_Bytes_32_Reg + Num_Bytes_EOL
 #define Read_16_Response_Bytes                  Num_Bytes_16_Reg + Num_Bytes_EOL
 #define Read_8_Response_Bytes                   Num_Bytes_8_Reg + Num_Bytes_EOL
@@ -196,6 +199,12 @@ class CamLab_Mbed_Serial
     void Read_16_Reg_Response(void);
 
     void Read_8_Reg_Response(void);
+
+    /**
+     * @brief Same as previous Reads, but reads 4 consecutive 32 bit values. Intended for reading the buffered ADC readings 8x16bit = 16 bytes total 
+     * 
+     */
+    void Read_128_Reg_Response(void);
 
     /**
      * @brief PRIVATE If the received command instruction (1st) byte indicates a request to write to a device register of a specified size, 
