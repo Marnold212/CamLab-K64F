@@ -4,6 +4,7 @@ from serial.serialutil import SerialException
 import serial.tools.list_ports as port_list
 import serial
 import time
+import numpy as np 
 
 
 #### How will we convey COM_PORT - very important for this serial connection
@@ -174,18 +175,37 @@ class Serial_K64F:
             print("0x35 Non-Matching Response (Could be a Set Register)")
         return Reg_Contents  # Hex Form 
 
+    # def Read_8_ADC_U16_Values(self, Serial_Device, Target_Address):
+    #     if(len(Target_Address) != 10 or not Target_Address.startswith("0x")):
+    #         raise Exception ("Register Address should be 4 bytes/8 hex digits long and be in format 0x00000000")
+    #     raw_data = self.Read_128_Reg(Serial_Device, Target_Address)
+    #     data = []
+    #     for x in range(8):
+    #         data.append(self.Hex_To_Dec(raw_data[(4*x) + 0 : (4*x) + 4]))
+    #     return data
+
+    # def Convert_ADC_Raw(self, Raw_Reading, ADC_Resolution, ADC_Max_Voltage, ADC_Min_Voltage):
+    #     return Raw_Reading / (2. ** ADC_Resolution) * (ADC_Max_Voltage - ADC_Min_Voltage) + ADC_Min_Voltage
+    
+    # Returns a list of the raw 16 bit unsigned values from ADC channels 0-7
+    # Returns 4 x uint32_t : Note the effect that this has on the received byte order: V2, V1, V4, V3, etc. 
     def Read_8_ADC_U16_Values(self, Serial_Device, Target_Address):
         if(len(Target_Address) != 10 or not Target_Address.startswith("0x")):
             raise Exception ("Register Address should be 4 bytes/8 hex digits long and be in format 0x00000000")
         raw_data = self.Read_128_Reg(Serial_Device, Target_Address)
         data = []
-        for x in range(8):
+        for x in range(0, 8, 2):
+            y = x+1   # Due to byte order of device - 
+            data.append(self.Hex_To_Dec(raw_data[(4*y) + 0 : (4*y) + 4]))
             data.append(self.Hex_To_Dec(raw_data[(4*x) + 0 : (4*x) + 4]))
         return data
 
-    def Convert_ADC_Raw(self, Raw_Reading, ADC_Resolution, ADC_Max_Voltage, ADC_Min_Voltage):
-        return Raw_Reading / (2. ** ADC_Resolution) * (ADC_Max_Voltage - ADC_Min_Voltage) + ADC_Min_Voltage
-        
+    # Assumes Data recieved is 
+    def Convert_ADC_Raw(self, Raw_Reading, ADC_Resolution, Max_Min_Voltage): 
+        Signed_Value = np.int16(Raw_Reading)  
+        quant_step = (2 * Max_Min_Voltage) / (2**ADC_Resolution)
+        return Signed_Value * quant_step
+
     # Uses private function - returns data contained in Register in hex form 
     def Read_128_Reg(self, Serial_Device, Target_Address): # Target_Address in form of "0x40048024"
         # if not self.IsConnected:

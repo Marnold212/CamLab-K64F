@@ -1,10 +1,12 @@
 #include "mbed.h"
 #include "CamLab_Mbed_Serial.h"
+#include "CamLab_Mbed_AD7606.h"
 
 using namespace std;
 
 BufferedSerial  serial_port(USBTX, USBRX);
 SPI spi_port(D11, D12, D13); // mosi, miso, sclk
+
 
 // BufferedSerial class is NonCopyable, therefore must pass pointer to Custom Class to use functionality 
 int main(){
@@ -25,15 +27,74 @@ int main(){
     // printf("Testing Reg Read: uint32_t: %lx \n", *(uint32_t * )(0x4004805C));
     // printf("Testing Reg Read: uint32_t: %lx \n", *(uint32_t * )(0x40048060));
     
+    CamLab_Mbed_AD7606 Test_ADC(NC, A4, A5, NC, A3, A0, A1, NC, NC, NC);
     CamLab_Mbed_Serial Test_Class(&serial_port, &spi_port);
 
 
     // Test_Class.Write_Serial_Message(buff, 6);
     while(1){
+        Test_ADC.Read_Raw((uint16_t *)(0x1FFF0000U), 8);
         Test_Class.Serial_Response();
         // Test_Class.Write_Serial_Message(buff, 5);
     }
 }
+
+// #include "mbed.h"
+// #include "CamLab_Mbed_Serial.h"
+
+// using namespace std;
+
+// BufferedSerial  serial_port(USBTX, USBRX);
+// DigitalOut RD(A4);
+// DigitalOut CONV(A5);
+// DigitalIn Busy(A3);
+// DigitalOut VIO(A2);   // Might need to be 5v not 3.3v output
+// DigitalIn FRST(A0);
+// DigitalOut led(LED_RED);
+// DigitalOut RST(A1);
+
+// BusIn DB(D0, PTB18, D1, PTB19, D2, PTC1, D3, PTC8, PTC12, PTC9, PTC4, PTC0, PTD0, PTC7, PTD2, PTC5);
+// char buf[32] = "{0}";
+
+
+
+// // BufferedSerial class is NonCopyable, therefore must pass pointer to Custom Class to use functionality 
+// int main(){
+//     RST = 0;
+//     RD = 1;
+//     CONV = 1;
+//     VIO = 1;
+//     buf[16] = '\n';
+//     uint16_t results[8];
+//     RST = 1; // Pulse Reset Output Pin 
+//     RST = 0;
+//     while(1){
+//         CONV = 0;
+//         led = 0;
+//         CONV = 1;
+//         wait_us(5000);
+//         // DB.mode(PullNone);
+//         for (size_t i = 0; i < 8; i++)
+//         {
+            
+//             RD = 0;
+//             // *(uint16_t *)(buf + 2*i) = DB.read();
+//             // printf("i:%i   Val = %u \n", i, DB.read());
+//             results[i] = (uint16_t)(DB.read());
+//             RD = 1;
+//             // if(i == 7){
+//             //     printf("1st value = %u; 7th value = %u\n", results[0], results[7]);
+//             // }
+//         }
+//         led = 1;
+//         printf("V1: %u   V2: %u    V3: %u  V4:%u    V5:%u   V6:%u   V7:%u   V8:%u\n", results[0], results[1], results[2], results[3], results[4], results[5], results[6], results[7]);
+//         // serial_port.write(buf, 16);
+//     }
+
+
+// }
+
+
 
 // LED Green = PTE26  
 
@@ -177,6 +238,5 @@ MCP4922 Dual Channel Through-Hole ADC
 //     // For testing purposes, return the command sent over serial in same order it was received 
 //     serial_port.write(buf, num_bytes);
 // }
-
 
 
