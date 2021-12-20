@@ -17,7 +17,7 @@ enum AD7606_Oversampling{
     ad7606_hw_avg_8 = 3,
     ad7606_hw_avg_16 = 4,
     ad7606_hw_avg_32 = 5,
-    ad76606_hw_avg_64 = 6,
+    ad7606_hw_avg_64 = 6,
     ad7606_software_mode = 7 // On AD7606B / AD7606C this config sets software mode 
 };
 
@@ -55,6 +55,15 @@ class CamLab_Mbed_AD7606 // Parallel 16 bit mode
 
     void NewSample(void);
 
+    /**
+     * @brief If the provided argument is valid, the oversampling pins OS[2:0] are set accordingly. 
+     * If the requested configuration is invalid, the value is unchanged. 
+     * The value returned is an integer corresponding to OS[2:0], so if the requested config was invalid, it will simply return the previous configuration. 
+     * Need to be careful - OS[2:0] = 111 corresponds to software mode for the AD7606B/AD7606C, but is invali for AD7606-8 e.g. breakout board. 
+     * 
+     * @param OS_Configuration An integer corresponding to desired value of OS[2:0], therefore should be integer in range 0-7 (0-6 if AD7606 has no software mode)
+     * @return int Returns final config of OS[2:0] in integer form (0-7) regardless of if the function changed anything or not. 
+     */
     int Set_Oversampling(int OS_Configuration);
 };
 

@@ -53,11 +53,34 @@ void CamLab_Mbed_AD7606::Read_Raw(uint16_t *rawDataBuffer, int Channels = 8){
     
 }
 
+// Couldnt think of a better implementation for checking for valid combinations
+// Could instead use: & 0x7 to only take 3 least significant bits 
 int CamLab_Mbed_AD7606::Set_Oversampling(int OS_Configuration){
-    if(Enum.IsDefined(typeof(AD7606_Oversampling), OS_Configuration)){ // If value requested is defined
-        _OS = OS_Configuration; // If we need current value, BusOut has a .read() function
-        return OS_Configuration; 
-    }else{
-        return -1;
+    switch(OS_Configuration){
+        case(ad7606_hw_avg_1):
+            _OS = OS_Configuration; 
+            break;
+        case(ad7606_hw_avg_2):
+            _OS = OS_Configuration; 
+            break;
+        case(ad7606_hw_avg_4):
+            _OS = OS_Configuration; 
+            break;
+        case(ad7606_hw_avg_8):
+            _OS = OS_Configuration; 
+            break;
+        case(ad7606_hw_avg_16):
+            _OS = OS_Configuration; 
+            break;
+        case(ad7606_hw_avg_32):
+            _OS = OS_Configuration; 
+            break;
+        case(ad7606_hw_avg_64):
+            _OS = OS_Configuration; 
+            break;
+        case(ad7606_software_mode):
+            _OS = OS_Configuration; 
+            break;
     }
+    return (_OS.read()); // Returns the value of OS regardless of if it changed or not 
 }
