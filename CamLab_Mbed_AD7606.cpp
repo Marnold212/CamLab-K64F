@@ -1,7 +1,7 @@
 #include "CamLab_Mbed_AD7606.h"
 #include "mbed.h"
 
-CamLab_Mbed_AD7606::CamLab_Mbed_AD7606(PinName Range, PinName rd, PinName ConvStA, PinName ConvStB, PinName Busy, PinName FirstData, PinName Reset, PinName OS0 = NC, PinName OS1 = NC, PinName OS2 = NC) : _RAGE(Range), _RD(rd), _CVA(ConvStA), _CVB(ConvStB), _BUSY(Busy), _FRST(FirstData), _RST(Reset), _OS0(OS0), _OS1(OS1), _OS2(OS2), _DB(AD7606_DB_pins) {
+CamLab_Mbed_AD7606::CamLab_Mbed_AD7606(PinName Range, PinName rd, PinName ConvStA, PinName ConvStB, PinName Busy, PinName FirstData, PinName Reset, PinName OS0 = NC, PinName OS1 = NC, PinName OS2 = NC) : _RAGE(Range), _RD(rd), _CVA(ConvStA), _CVB(ConvStB), _BUSY(Busy), _FRST(FirstData), _RST(Reset), _OS(OS0, OS1, OS2), _DB(AD7606_DB_pins) {
     _RD = 1; // Wired to CS for 16 parallel operation
     _CVA = 1; // Could wire to CVB, but leave option of seperate sampling? 
     if(ConvStB != NC){
@@ -14,9 +14,9 @@ CamLab_Mbed_AD7606::CamLab_Mbed_AD7606(PinName Range, PinName rd, PinName ConvSt
         _RAGE = 0; // Range: LOW = +/-5V ; High = +/-10V 
     }
     if(OS0 != NC && OS1 != NC && OS2 != NC){
-        _OS0 = 0; // Set the Oversampling settings on AD7606
-    _OS1 = 0; // Note that OS = 111 is an invalid setting 
-    _OS2 = 0;
+        _OS = 0; // Set the Oversampling settings on AD7606
+        // Note that OS = 111 is an invalid setting on breakout board - sets software mode on newer versinos of AD7606
+        
     }
     if(Reset != NC){
         reset();
@@ -51,4 +51,13 @@ void CamLab_Mbed_AD7606::Read_Raw(uint16_t *rawDataBuffer, int Channels = 8){
         _RD = 1;
     }
     
+}
+
+int CamLab_Mbed_AD7606::Set_Oversampling(int OS_Configuration){
+    if(Enum.IsDefined(typeof(AD7606_Oversampling), OS_Configuration)){ // If value requested is defined
+        _OS = OS_Configuration; // If we need current value, BusOut has a .read() function
+        return OS_Configuration; 
+    }else{
+        return -1;
+    }
 }
