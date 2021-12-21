@@ -17,10 +17,12 @@
 // A better way to code the multiple communication classes is probably to utilise inheritance, but I didn't consider this early enough 
 
 
+
 class CamLab_Mbed_Ethernet
 {
 private:
     int _PORT; // PORT used for network communication 
+    
     EthernetInterface eth;
     SocketAddress sock_addr; // socket address used to 
     TCPSocket socket; // socket used to listen on Chosen PORT 

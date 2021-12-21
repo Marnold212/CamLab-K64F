@@ -1,6 +1,7 @@
 #include "CamLab_Mbed_Ethernet.h"
 
 CamLab_Mbed_Ethernet::CamLab_Mbed_Ethernet(int PORT) : _PORT(PORT) {
+    eth_COMM = nullptr; 
     // There is a default timeout - but very long 
     // Default in blocking mode - long time before returning no connection 
     eth.set_blocking(false); // Change to asyncronous mode 
@@ -55,11 +56,16 @@ bool CamLab_Mbed_Ethernet::Check_Socket_Valid(void){
 bool CamLab_Mbed_Ethernet::Check_Eth_Status(void){
     if(!eth_Connected){ // If Current Ethernet State is disconnected 
         if(Update_Eth_Status()){ // Check if new ethernet connection available
+            printf("Connected to Ethernet - Listening for socket\n");
+            eth.get_ip_address(&sock_addr);
+            printf("IP address: %s\n", sock_addr.get_ip_address() ? sock_addr.get_ip_address() : "None");
             return Check_Socket_Valid(); // Check if there is a valid socket to connect to  
         }
     }else{  // If Current Ethernet State is Connected
         if(Update_Eth_Status()){ // Check if new ethernet connection available
             return Check_Socket_Valid(); // Check if there is a valid socket to connect to  
+        }else{
+            printf("Disconnected\n");
         }
     }
     return false;
