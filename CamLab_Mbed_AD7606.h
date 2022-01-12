@@ -39,7 +39,7 @@ class CamLab_Mbed_AD7606 // Parallel 16 bit mode
         
 
         // Could pass pins as argument but want to avoid too many arguamnets to constructor
-        PinName AD7606_DB_pins[16] = {D0, PTB18, D1, PTB19, D2, PTC1, D3, PTC8, PTC12, PTC9, PTC4, PTC0, PTD0, PTC7, PTD2, PTC5}; // DB0 - DB15  (LSB on Left, MSB on Right)
+        PinName AD7606_DB_pins[16] = {D0, PTB18, D1, PTB19, D2, PTC1, D3, PTC8, D4, PTC9, D5, PTC0, D6, PTC7, D7, PTC5}; // DB0 - DB15  (LSB on Left, MSB on Right)
         BusOut _OS;
         BusIn _DB;
 
