@@ -49,7 +49,7 @@ for x in range(Num_Mbed_TCP_Devices):
     client.connect(ADDR)
     with client as s:
         s.send("Hello".encode(FORMAT))
-        print(s.recv(len("Hello")))
+        print(s.recv(len("Hello"))) # Wait for echo from K64F Ethernet 
         s.send("World".encode(FORMAT))
         print(s.recv(len("World"))) 
 
