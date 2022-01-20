@@ -39,7 +39,7 @@ void CamLab_Mbed_AD7606::NewSample(void){
 
 void CamLab_Mbed_AD7606::Read_Raw(uint16_t *rawDataBuffer, int Channels = 8){
     NewSample();
-    wait_us(10); // Depending on Oversampling settings - ideally use busy pin but forums claim it doesnt work 
+    wait_us(sample_time_us); // Depending on Oversampling settings - ideally use busy pin but forums claim it doesnt work 
     // while(_BUSY){
     //     // Wait for Conversion to Complete
     // }
@@ -81,6 +81,10 @@ int CamLab_Mbed_AD7606::Set_Oversampling(int OS_Configuration){
         case(ad7606_software_mode):
             _OS = OS_Configuration; 
             break;
+    }
+    
+    if(_OS.read() != ad7606_software_mode){
+        sample_time_us = (1000000 / max_Sample_Rate) << _OS.read(); // Set sample time - left shift by oversampling to multiply wait time 
     }
     return (_OS.read()); // Returns the value of OS regardless of if it changed or not 
 }
