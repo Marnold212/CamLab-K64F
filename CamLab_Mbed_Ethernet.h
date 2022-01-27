@@ -35,6 +35,7 @@ public:
 
     /**
      * @brief Construct a new CamLab_Mbed_Ethernet object - acts as a TCP Server using DHCP
+     * Initialises Ethernt and Scoket in Non-Blocking mode, binds PORT and starts listening for connections. 
      * 
      * @param PORT Defines the network PORT over which the Device listens for connections  
      */
@@ -61,12 +62,19 @@ public:
      * Note that this may not mean we can read or write, however that will be dealt with seperately.
      * If there is no valid Conenction/Socket, the device will listen for both everytime this function is called.
      * 
+     * 
      * @return true 
      * @return false 
      */
     bool Check_Eth_Status(void);
 
-
+    /**
+     * @brief CURRENTLY NOT IMPLEMENTED - simply deals with connection and echos any recieved data. 
+     * We need to refactor all communication protocols to inherit from a base communication class. 
+     * We need to contain all communication format in one class, then implementation in separate such as Serial/Ethernet so 
+     * that all methods share common instructions/response format. 
+     * 
+     */
     void Eth_Response(void); // Assumes we have a valid ethernet Connection + Socket 
 
 };

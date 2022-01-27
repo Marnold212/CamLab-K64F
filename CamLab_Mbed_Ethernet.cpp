@@ -80,6 +80,7 @@ void CamLab_Mbed_Ethernet::Eth_Response(void){ // Assumes we have a valid ethern
     }else if(rcount == 0){ // No Command recieved, but no error with channel 
         return;
     }else if(rcount <= MAXIMUM_BUFFER_SIZE){
+        // This is where we should do useful communication 
         printf("recv %d [%.*s]\n", rcount, strstr(buf_eth, "\r\n") - buf_eth, buf_eth);  // -3004 is an error code for no connection
         int scount = eth_COMM->send(buf_eth, rcount);
         printf("echo %d [%.*s]\n", scount, strstr(buf_eth, "\r\n") - buf_eth, buf_eth);  // -3004 is an error code for no connection      
