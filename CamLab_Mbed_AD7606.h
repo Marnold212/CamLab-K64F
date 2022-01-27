@@ -21,6 +21,11 @@ enum AD7606_Oversampling{
     ad7606_software_mode = 7 // On AD7606B / AD7606C this config sets software mode 
 };
 
+/**
+ * @brief Simple class for using the AD7606 ADC in 16-bit parallel mode. Note the 10k resistor must be in the R2 position on the breakout board.
+ * Currently data pins defined within class, with control pins passed as arguments. Therefore only 1 instance of this class should exist in current form.
+ * 
+ */
 class CamLab_Mbed_AD7606 // Parallel 16 bit mode
 {
     private:
@@ -47,13 +52,25 @@ class CamLab_Mbed_AD7606 // Parallel 16 bit mode
 
     public: 
 
+    // Constructor 
     CamLab_Mbed_AD7606(PinName Range, PinName rd, PinName ConvStA, PinName ConvStB, PinName Busy, PinName FirstData, PinName Reset, PinName OS0, PinName OS1, PinName OS2);
 
     void reset(void);
 
     // Note that AD7606 uses 2's compliment 
+    /**
+     * @brief Starts new ADC sample, then reads a given number of 16-bit channels into a block of memory starting at address specified. 
+     * Size of memory written to is dependant on number of channels limited by AD7606 max resolution and number of channels. 
+     * 
+     * @param rawDataBuffer 
+     * @param Channels 
+     */
     void Read_Raw(uint16_t *rawDataBuffer, int Channels);
 
+    /**
+     * @brief Start new sample - currently assmues the two CONVST pins are physically wired together. Therefore samples all 8 channels simultaneously   
+     * 
+     */
     void NewSample(void);
 
     /**
@@ -61,6 +78,7 @@ class CamLab_Mbed_AD7606 // Parallel 16 bit mode
      * If the requested configuration is invalid, the value is unchanged. 
      * The value returned is an integer corresponding to OS[2:0], so if the requested config was invalid, it will simply return the previous configuration. 
      * Need to be careful - OS[2:0] = 111 corresponds to software mode for the AD7606B/AD7606C, but is invali for AD7606-8 e.g. breakout board. 
+     * Also updates the sample time to the correct value for this new oversampling configuration. 
      * 
      * @param OS_Configuration An integer corresponding to desired value of OS[2:0], therefore should be integer in range 0-7 (0-6 if AD7606 has no software mode)
      * @return int Returns final config of OS[2:0] in integer form (0-7) regardless of if the function changed anything or not. 

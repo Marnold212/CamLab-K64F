@@ -47,6 +47,7 @@ void CamLab_Mbed_AD7606::Read_Raw(uint16_t *rawDataBuffer, int Channels = 8){
     for (int i = 0; i < Channels; i++)
     {
         _RD = 0; // Command Reading onto DB[15:0] pins, 8 times for each channel in sequence
+        // Ideally once custom PCB made - 16 bits can be read in 1 or 2 consecutive chunks of pins since faster than using BusIn
         *(uint16_t *)(rawDataBuffer + i) = (uint16_t)(_DB.read()); // Data is output using 2's compliment
         _RD = 1;
     }
