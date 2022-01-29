@@ -40,6 +40,7 @@ void CamLab_Mbed_AD7606::NewSample(void){
 void CamLab_Mbed_AD7606::Read_Raw(uint16_t *rawDataBuffer, int Channels = 8){
     NewSample();
     wait_us(sample_time_us); // Depending on Oversampling settings - ideally use busy pin but forums claim it doesnt work 
+    // wait_us(10);
     // while(_BUSY){
     //     // Wait for Conversion to Complete
     // }

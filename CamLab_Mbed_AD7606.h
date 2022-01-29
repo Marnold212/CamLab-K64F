@@ -46,12 +46,12 @@ class CamLab_Mbed_AD7606 // Parallel 16 bit mode
         PinName AD7606_DB_pins[16] = {D0, PTB18, D1, PTB19, D2, PTC1, D3, PTC8, D4, PTC9, D5, PTC0, D6, PTC7, D7, PTC5}; // DB0 - DB15  (LSB on Left, MSB on Right)
         BusOut _OS;
         BusIn _DB;
-
-        uint32_t max_Sample_Rate = 200000;  // SPS: True for current version of AD7606
         uint32_t sample_time_us = 1000000 / max_Sample_Rate;    // If no Oversampling - Sample duration in microseconds
+        uint32_t max_Sample_Rate = 200000;  // SPS: True for current version of AD7606
+        
 
     public: 
-
+        
     // Constructor 
     CamLab_Mbed_AD7606(PinName Range, PinName rd, PinName ConvStA, PinName ConvStB, PinName Busy, PinName FirstData, PinName Reset, PinName OS0, PinName OS1, PinName OS2);
 

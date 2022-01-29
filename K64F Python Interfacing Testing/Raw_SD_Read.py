@@ -16,6 +16,8 @@ def Read_SD_Raw_Data(file, data_type):
     for x in data:
         print(x)
 
+Read_SD_Raw_Data(f, np.float32)
+
 """ a = np.fromfile(f, dtype=np.float32)
 data = []
 
