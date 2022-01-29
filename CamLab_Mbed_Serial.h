@@ -76,6 +76,9 @@ class CamLab_Mbed_Serial
 {
     public:
 
+    uint32_t Serial_baudrate = 115200; // Speed of Serial Communication
+    int us_wait_32_bytes_Serial = 1.2 * 1000000 * 8 * 32 / Serial_baudrate; // 120% of time required to recieve 32 bytes of data in microseconds 
+
     enum SPIDeviceCS{ 
         SPI_Device_1 = 24  /* D15 = PTE24 so GPIOE pin 24 */             
     };

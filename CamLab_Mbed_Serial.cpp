@@ -5,7 +5,7 @@ void CamLab_Mbed_Serial::Init_Serial(void){
     // Create a BufferedSerial object with a default baud rate.
     // BufferedSerial serial_port(USBTX, USBRX); // May be able to have full-duplex if no arguments given to buffered Serial class 
     // Set desired properties (115200-8-N-1).    
-    serial_handle->set_baud(115200);
+    serial_handle->set_baud(Serial_baudrate);
     serial_handle->set_format(
         /* bits */ 8,
         /* parity */ BufferedSerial::None,
@@ -22,12 +22,7 @@ void CamLab_Mbed_Serial::Init_SPI(void){
 void CamLab_Mbed_Serial::Receive_Serial_Data(void){ // Look for more efficient implemmentation 
     // ThisThread::sleep_for(4ms); // Needed to get full input - 10ms just arbitrary value - but errors if only 1ms
     wait_us(3500);  // Wait time in us for 8*32 bits to arrive at a rate of 115200 
-    // if(*(uint8_t *)(UART0->S2)  & (1U << 0)){
-    //     // ThisThread::sleep_for(10ms);
-    // }
-    // else{
-    //     ThisThread::sleep_for(10ms);
-    // }
+    // wait_us(us_wait_32_bytes_Serial); 
 }
 
 int CamLab_Mbed_Serial::Read_Serial_Buffer(void){ 
