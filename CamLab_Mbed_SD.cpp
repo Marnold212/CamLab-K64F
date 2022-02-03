@@ -1,7 +1,7 @@
 #include "CamLab_Mbed_SD.h"
 
-bool SD_Card_Init(SDBlockDevice *&sd_instance){
-    int SD_Status = sd->init();
+bool SD_Card_Init(SDBlockDevice &sd_instance){
+    int SD_Status = sd_instance.init();
     if(SD_Status == BD_ERROR_OK){
         return true;
     }else{

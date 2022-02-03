@@ -18,7 +18,7 @@ using namespace std;
  * @return true if sd card initiallised correctly
  * @return false if unable to init SD card - most likely there is no SD card inserted 
  */
-bool SD_Card_Init(SDBlockDevice *&sd_instance);
+bool SD_Card_Init(SDBlockDevice &sd_instance);
 
 /**
  * @brief Function to Mount the SD Card to the file System - uses the Mbed SDBlockDevice library to initialise - note we use lower level functions later to write/read to SD card for greater performance. Check if SD card is present prior to performing this function. 
