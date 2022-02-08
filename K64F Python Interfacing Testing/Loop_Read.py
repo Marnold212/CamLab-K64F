@@ -132,6 +132,52 @@ def Convert_ADC_Raw(Raw_Reading, ADC_Resolution, Max_Min_Voltage):
     quant_step = (2 * Max_Min_Voltage) / (2**ADC_Resolution)
     return Signed_Value * quant_step
 
+
+def Decode_Time_In_Secs(HEX_four_bytes):
+    return Hex_To_Dec(Reverse_Hex_Byte_Order(HEX_four_bytes))
+
+def Decode_8x16_Raw(HEX_sixteen_bytes):
+    if(len(HEX_sixteen_bytes) != 16*2):
+        raise ValueError
+    Raw_Readings = []
+    for x in range(8):
+        Raw_Readings.append(Hex_To_Dec(Reverse_Hex_Byte_Order(HEX_sixteen_bytes[4*x : 4*(x+1)])))
+    return Raw_Readings
+
+def Decode_6_Compressed_PWM_Duty(HEX_six_bytes):
+    if(len(HEX_six_bytes) != 6*2):
+        raise ValueError
+    Duty_Cycles = []
+    for x in range(6):
+        Duty_Cycles.append(Hex_To_Dec(HEX_six_bytes[2*x : 2*x + 2]) / 100.)
+    return Duty_Cycles 
+
+
+
+
+
+def Decode_Raw_Data(Raw_Data):
+    Results = []
+    for sample in Raw_Data:
+        entry = []
+        time = Decode_Time_In_Secs(sample[0:(4*2)])
+        entry.append(time)
+        entry.append(Decode_8x16_Raw(sample[4 * 2 : (4 + (2*8)) * 2]))
+        entry.append(Decode_6_Compressed_PWM_Duty(sample[(4 + (2*8)) * 2 : 40 + 6*2]))
+
+        Results.append(entry)
+    print(Raw_Data)
+    return Results
+        # for x in range(2, 8+2, 2): # Bytes
+        #     y = x+1   # Due to byte order of device - 
+
+        #     entry.append(Hex_To_Dec(sample[(4*y) + 0 : (4*y) + 4]))
+        #     entry.append(Hex_To_Dec(sample[(4*x) + 0 : (4*x) + 4]))
+        #     # entry.append(Convert_ADC_Raw(Hex_To_Dec(sample[(4*y) + 0 : (4*y) + 4]), 16, 5))
+        #     # entry.append(Convert_ADC_Raw(Hex_To_Dec(sample[(4*x) + 0 : (4*x) + 4]), 16, 5))
+        # Results.append(entry)
+        
+
 # Testing 
 if __name__ == "__main__":
     mbed_USB_info = List_All_Mbed_USB_Devices()
@@ -139,17 +185,33 @@ if __name__ == "__main__":
     for i in range(5):
         print(mbed_USB_info[i])
 
-    serial_port = serial.Serial(port=mbed_USB_info[1][0], baudrate=115200, bytesize=8, timeout=1, stopbits=serial.STOPBITS_ONE)
-    for x in range(1000):
-        raw_data = ADC_8x_16_Raw_Read(serial_port)
-        # raw_data = serial_port.read(1)
-        data = []
-        for x in range(8):
-            data.append(Convert_ADC_Raw(raw_data[1][x], 16, 5))
-        # print(raw_data)
-        print(data, raw_data[0])
+    # serial_port = serial.Serial(port=mbed_USB_info[1][0], baudrate=115200, bytesize=8, timeout=1, stopbits=serial.STOPBITS_ONE)
+    # for x in range(1000):
+    #     raw_data = ADC_8x_16_Raw_Read(serial_port)
+    #     # raw_data = serial_port.read(1)
+    #     data = []
+    #     for x in range(8):
+    #         data.append(Convert_ADC_Raw(raw_data[1][x], 16, 5))
+    #     # print(raw_data)
+    #     print(data, raw_data  [0])
 
-# Serial_device = serial.Serial(port="COM4", baudrate=9600, bytesize=8, timeout=1, stopbits=serial.STOPBITS_ONE)
+    Bytes_Per_Sample = 32
+    Number_Samples = 10
+    Serial_Baudrate = 576000  # 962100
+
+    serial_port = serial.Serial(port=mbed_USB_info[1][0], baudrate=Serial_Baudrate, bytesize=8, timeout=1, stopbits=serial.STOPBITS_ONE)
+    data = []
+    for x in range(Number_Samples):
+        raw = serial_port.read(Bytes_Per_Sample).hex()
+        data.append(raw)
+    # print(data)
+    # print(data)
+    Formatted = Decode_Raw_Data(data)
+    print(Formatted[0:2])
+    # print(Results[0:2])
+
+# 
+#  Serial_device = serial.Serial(port="COM4", baudrate=9600, bytesize=8, timeout=1, stopbits=serial.STOPBITS_ONE)
 # Target_Register = "0x40048024"
 # Received_String = Read_K64F_Hex_Register(Serial_device, Target_Register, 4)
 # print("READ COMMAND (0x30): Requested Register = %s; Contents of Register(Hex) = %s" % (Target_Register , Received_String[:-2]))
