@@ -166,7 +166,6 @@ def Decode_Raw_Data(Raw_Data):
         entry.append(Decode_6_Compressed_PWM_Duty(sample[(4 + (2*8)) * 2 : 40 + 6*2]))
 
         Results.append(entry)
-    print(Raw_Data)
     return Results
         # for x in range(2, 8+2, 2): # Bytes
         #     y = x+1   # Due to byte order of device - 
@@ -196,8 +195,8 @@ if __name__ == "__main__":
     #     print(data, raw_data  [0])
 
     Bytes_Per_Sample = 32
-    Number_Samples = 10
-    Serial_Baudrate = 576000  # 962100
+    Number_Samples = 300
+    Serial_Baudrate = 230400  # 962100
 
     serial_port = serial.Serial(port=mbed_USB_info[1][0], baudrate=Serial_Baudrate, bytesize=8, timeout=1, stopbits=serial.STOPBITS_ONE)
     data = []
@@ -207,7 +206,7 @@ if __name__ == "__main__":
     # print(data)
     # print(data)
     Formatted = Decode_Raw_Data(data)
-    print(Formatted[0:2])
+    print(Formatted[0], Formatted[Number_Samples - 1])
     # print(Results[0:2])
 
 # 
