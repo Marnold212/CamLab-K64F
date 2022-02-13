@@ -34,7 +34,7 @@ class CamLab_Mbed_AD7606 // Parallel 16 bit mode
         DigitalOut _RD;
         DigitalOut _CVA;
         DigitalOut _CVB;
-        DigitalIn _BUSY;
+        
         DigitalIn _FRST;
         // DigitalOut _CS; // Wired to RD in Parallel mode
         DigitalOut _RST;
@@ -44,13 +44,16 @@ class CamLab_Mbed_AD7606 // Parallel 16 bit mode
 
         // Could pass pins as argument but want to avoid too many arguamnets to constructor
         PinName AD7606_DB_pins[16] = {D0, PTB18, D1, PTB19, D2, PTC1, D3, PTC8, D4, PTC9, D5, PTC0, D6, PTC7, D7, PTC5}; // DB0 - DB15  (LSB on Left, MSB on Right)
-        BusOut _OS;
+        
         BusIn _DB;
-        uint32_t sample_time_us = 1000000 / max_Sample_Rate;    // If no Oversampling - Sample duration in microseconds
+        
         uint32_t max_Sample_Rate = 200000;  // SPS: True for current version of AD7606
         
 
     public: 
+    DigitalIn _BUSY;
+    BusOut _OS;
+    uint32_t sample_time_us = 1000000 / max_Sample_Rate;    // If no Oversampling - Sample duration in microseconds
         
     // Constructor 
     CamLab_Mbed_AD7606(PinName Range, PinName rd, PinName ConvStA, PinName ConvStB, PinName Busy, PinName FirstData, PinName Reset, PinName OS0, PinName OS1, PinName OS2);
@@ -65,7 +68,7 @@ class CamLab_Mbed_AD7606 // Parallel 16 bit mode
      * @param rawDataBuffer 
      * @param Channels 
      */
-    void Read_Raw(uint16_t *rawDataBuffer, int Channels);
+    void Read_Raw(int16_t *rawDataBuffer, int Channels);
 
     /**
      * @brief Start new sample - currently assmues the two CONVST pins are physically wired together. Therefore samples all 8 channels simultaneously   

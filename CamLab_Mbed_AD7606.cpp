@@ -1,7 +1,8 @@
 #include "CamLab_Mbed_AD7606.h"
 #include "mbed.h"
 
-CamLab_Mbed_AD7606::CamLab_Mbed_AD7606(PinName Range, PinName rd, PinName ConvStA, PinName ConvStB, PinName Busy, PinName FirstData, PinName Reset, PinName OS0 = NC, PinName OS1 = NC, PinName OS2 = NC) : _RAGE(Range), _RD(rd), _CVA(ConvStA), _CVB(ConvStB), _BUSY(Busy), _FRST(FirstData), _RST(Reset), _OS(OS0, OS1, OS2), _DB(AD7606_DB_pins) {
+CamLab_Mbed_AD7606::CamLab_Mbed_AD7606(PinName Range, PinName rd, PinName ConvStA, PinName ConvStB, PinName Busy, PinName FirstData, PinName Reset, PinName OS0 = NC, PinName OS1 = NC, PinName OS2 = NC) : 
+            _RAGE(Range), _RD(rd), _CVA(ConvStA), _CVB(ConvStB), _BUSY(Busy), _FRST(FirstData), _RST(Reset), _OS(OS0, OS1, OS2), _DB(AD7606_DB_pins) {
     _RD = 1; // Wired to CS for 16 parallel operation
     _CVA = 1; // Could wire to CVB, but leave option of seperate sampling? 
     if(ConvStB != NC){
@@ -21,8 +22,6 @@ CamLab_Mbed_AD7606::CamLab_Mbed_AD7606(PinName Range, PinName rd, PinName ConvSt
     if(Reset != NC){
         reset();
     }
-
-    
 };
 
 void CamLab_Mbed_AD7606::reset(void){
@@ -37,7 +36,7 @@ void CamLab_Mbed_AD7606::NewSample(void){
     // _CVB = 1;
 }
 
-void CamLab_Mbed_AD7606::Read_Raw(uint16_t *rawDataBuffer, int Channels = 8){
+void CamLab_Mbed_AD7606::Read_Raw(int16_t *rawDataBuffer, int Channels = 8){
     NewSample();
     wait_us(sample_time_us); // Depending on Oversampling settings - ideally use busy pin but forums claim it doesnt work 
     // wait_us(10);
@@ -49,7 +48,7 @@ void CamLab_Mbed_AD7606::Read_Raw(uint16_t *rawDataBuffer, int Channels = 8){
     {
         _RD = 0; // Command Reading onto DB[15:0] pins, 8 times for each channel in sequence
         // Ideally once custom PCB made - 16 bits can be read in 1 or 2 consecutive chunks of pins since faster than using BusIn
-        *(uint16_t *)(rawDataBuffer + i) = (uint16_t)(_DB.read()); // Data is output using 2's compliment
+        *(int16_t *)(rawDataBuffer + i) = (int16_t)(_DB.read()); // Data is output using 2's compliment
         _RD = 1;
     }
     
