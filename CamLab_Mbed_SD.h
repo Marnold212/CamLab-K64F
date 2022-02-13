@@ -11,6 +11,10 @@ using namespace std;
 #define SD_WRITE_FILE_NAME                      "/fs/Raw_Data.txt"
 #define SD_READ_FILE_NAME                       "/fs/Test.txt"
 
+/**
+ * @brief Implements the Mbed SD card interface - uses the SPI interface rather than the faster SDIO? The SDHC block of the K64F doesn't appear to be used at all, which is likely limiting performance. 
+ * 
+ */
 class CamLab_Mbed_SD
 {
     

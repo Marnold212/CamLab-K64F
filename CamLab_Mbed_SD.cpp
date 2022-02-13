@@ -128,14 +128,13 @@ void CamLab_Mbed_SD::Write_to_SD(void *source_buf, uint32_t size_element, uint32
 }
 
 void CamLab_Mbed_SD::_Write_SD_Raw_Data_File(void *buf, uint32_t size_element, uint32_t num_elements, FILE *write_file){
-    printf("%p\n", write_file);
     uint32_t check_return = fwrite(buf, size_element, num_elements, write_file);
     if(check_return != num_elements){ // Check Return value for any error 
         SD_Status = false;
     }
 }
 
-void Flush_SD_Write_File(){
+void CamLab_Mbed_SD::Flush_SD_Write_File(){
     fflush(f_sdWrite);
     fsync(fileno(f_sdWrite)); 
 }

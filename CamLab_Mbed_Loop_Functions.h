@@ -8,10 +8,112 @@ volatile bool Sample_Ready = false;
 volatile bool Sample_Running = false; 
 volatile bool Sample_error = false;
 
-int ADC_Resolution = 16;
-int ADC_max_voltage = 5;
-int ADC_min_voltage = -5;
-float ADC_q_step = (ADC_max_voltage - ADC_min_voltage) / pow(2, ADC_Resolution);
+#define ADC_Resolution          16  // Default AD7606 config - can be updated 
+#define ADC_max_voltage         5   // Default AD7606 config - can be updated
+#define ADC_min_voltage         -5  // Default AD7606 config - can be updated
+#define Max_ADC_Inputs          8   // Determined by AD7606 ADC
+#define Max_PWM_Outputs         6   // Determined by physical layout of board 
+
+// These values could be updated during initialisation, so this calculation simply leads to default 
+volatile float ADC_q_step = (ADC_max_voltage - ADC_min_voltage) / pow(2, ADC_Resolution);
+
+volatile int Num_ADC_Channels = 8; // Determined during initialisation - goes from 0-7
+volatile int Num_PWM_Outputs = 6; // Determined during initialisation - see pin defintions for priorities s
+
+pwmout_t PWM_obj[Max_PWM_Outputs]; // Objects to allow control of each PWM output 
+PinName PWM_pins[Max_PWM_Outputs] = {D5, D6, D7, D3, D9, D10}; // Pins allocated for each PWM output 
+// PinName PWM_pins[NUM_PWM_OUTPUTS] = {PTD1, D6, D7, PTD3, D9, D10};
+
+/**
+ * @brief Initialise the PWM number of PWM outputs required for expermient. Initially have 0 duty cycle 
+ * 
+ * @param PWM_count Number of PWM outputs to initiase - ensure within defined maximum 
+ */
+void Custom_PWM_Init(int PWM_count){
+    if(PWM_count <= Max_PWM_Outputs){
+        for(int x = 0; x < PWM_count; x++){
+            // Should be initialised to 0 - need to double check at some point! 
+            pwmout_init(&PWM_obj[x], PWM_pins[x]);
+        }
+    }
+}
+
+/**
+ * @brief Writes the stored floating point to the corresponding PWM output pins - Make sure values stay within 0.0-1.0 and leave pins not in use as 0.
+ * 
+ * @param Duties_arr Pointer to float array containing the desired PWM output Duty ratios 
+ * @param PWM_count Number of PWM outputs in use 
+ */
+void Update_PWM_Duty_Ratios(float *Duties_arr, int PWM_count){
+    for(int x = 0; x < PWM_count; x++){
+        // Should be initialised to 0 - need to double check at some point! 
+        pwmout_write(&PWM_obj[x], Duties_arr[x]); 
+    } 
+    // In case we need to be certain unused PWM outputs are set to 0. - Shouldn't be initialised in the first place 
+    // for(int x = PWM_count; x < Max_PWM_Outputs; x++){
+    //     pwmout_write(&PWM_obj[x], 0.0f); 
+    // }
+}
+
+/**
+ * @brief For an existing BufferedSerial connection, update config for loop operation
+ * 
+ * @param serial_handle Pointer to BufferedSerial object 
+ * @param baudrate New baudrate for Serial Communication 
+ */
+void Configure_Loop_Serial(BufferedSerial *serial_handle, uint32_t baudrate){
+    serial_handle->set_baud(baudrate); 
+    serial_handle->set_format(
+        /* bits */ 8,
+        /* parity */ BufferedSerial::None,
+        /* stop bit */ 1
+    );
+}
+
+/**
+ * @brief Convert a float Duty Cycle (0.0 - 1.0) to a uint percentage (000 - 100) to reduce size. Conversion always rounds down. 
+ * 
+ * @param decimal Input 32-bit float value between 0.0 and 1.0 inclusive
+ * @return uint8_t Equivalent value represented as 0 - 100 inclusive 
+ */
+uint8_t Duty_Float_To_Dec(float decimal){
+    return (uint8_t)(decimal * 100.0f);   
+}
+
+
+void Raw_ADC_To_Voltage(uint16_t *source_arr, float *dest_arr, int Num_Channels, float q_step){
+    for(int x = 0; x < Num_Channels; x++){
+        // *(dest_addr + x)
+        dest_arr[x] = (int16_t)(source_arr[x]) *  q_step;
+    }
+    // Voltages[x] = (int16_t)(Dummy_ADC_Results[x]) * q_step; 
+}
+
+/**
+ * @brief For an array of N PWM duty cycle float values (0.0-1.0), compress to uint8_t (0-100) and store output in specified buffer with at least N bytes available  
+ * 
+ * @param source_arr Base address of float Array containing PWM duty cycles 
+ * @param dest_arr Base address of uint8_t Array to store compressed 
+ * @param Num_Channels Number of PWM Duty cycles to convert - Size of Arrays storing values 
+ */
+void Compress_PWM_Duty(float *source_arr, uint8_t *dest_arr, int Num_Channels){
+    for(int x = 0; x < Num_Channels; x++){
+        dest_arr[x] = Duty_Float_To_Dec(source_arr[x]); 
+    }
+}
+
+/**
+ * @brief Copy a specified number of consecutive Bytes from one buffer to another. Increment offset of destination buffer by number of bytes transferred. Make sure both buffers have enough data for requested transfer 
+ * 
+ * @param dest_buf_base Address of 0th element of the array we wish to copy data to  
+ * @param dest_buf_offset Current Offset of destination buffer from base address 
+ * @param source_buf Start address of data to copy 
+ * @param Num_Bytes Number of bytes to copy - dest_buf_offset will be incremented by this amount
+ */
+void Copy_Data_To_Buffer(void *dest_buf_base, uint32_t &dest_buf_offset, void *source_buf, uint32_t Num_Bytes){
+    memcpy((uint8_t *)dest_buf_base + dest_buf_offset, source_buf, Num_Bytes); // Copy chunk of memory specified 
+    dest_buf_offset += Num_Bytes; // Increment Buffer Target Offset by the amount of data transferred 
+} 
 
 static void pit0_isr(void)
 {
@@ -22,12 +124,8 @@ static void pit0_isr(void)
     }else{
         Sample_error = true;
     }
-	// *ptrval = !(*ptrval);
 }
 
-/** Initialize the high frequency ticker
- *   mbed-os\targets\TARGET_Freescale\TARGET_MCUXpresso_MCUS\TARGET_MCU_K64F\drivers\fsl_pit.c
- */
 void Custom_PIT_Init(void)
 {
     /* Structure to initialize PIT. */
@@ -58,50 +156,8 @@ void Custom_PIT_Close(){
     PIT_Deinit(PIT); 
 }
 
-void Configure_Loop_Serial(BufferedSerial *serial_handle, uint32_t baudrate){
-    serial_handle->set_baud(baudrate); 
-    serial_handle->set_format(
-        /* bits */ 8,
-        /* parity */ BufferedSerial::None,
-        /* stop bit */ 1
-    );
-}
-
-
-
-/**
- * @brief Convert a float Duty Cycle (0.0 - 1.0) to a uint percentage (000 - 100) to reduce size. Conversion always rounds down. 
- * 
- * @param decimal Input 32-bit float value between 0.0 and 1.0 inclusive
- * @return uint8_t Equivalent value represented as 0 - 100 inclusive 
- */
-uint8_t Duty_Float_To_Dec(float decimal){
-    return (uint8_t)(decimal * 100.0f);   
-}
-
-void Raw_ADC_To_Voltage(uint16_t *source_arr, float *dest_arr, int Num_Channels){
-    for(int x = 0; x < Num_Channels; x++){
-        // *(dest_addr + x)
-        dest_arr[x] = (int16_t)(source_arr[x]) *  ADC_q_step;
-    }
-    // Voltages[x] = (int16_t)(Dummy_ADC_Results[x]) * q_step; 
-}
-
-void Compress_PWM_Duty(float *source_arr, uint8_t *dest_arr, int Num_Channels){
-    for(int x = 0; x < Num_Channels; x++){
-        dest_arr[x] = Duty_Float_To_Dec(source_arr[x]); 
-    }
-}
-
-
-void Copy_Data_To_Buffer(void *dest_buf_base, uint32_t &dest_buf_offset, void *source_buf, uint32_t Num_Bytes){
-    memcpy(dest_buf_base + dest_buf_offset, source_buf, Num_Bytes);
-    dest_buf_offset += Num_Bytes;
-} 
-
 
 #endif
-
 
 
 
